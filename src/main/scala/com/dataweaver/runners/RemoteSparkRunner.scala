@@ -73,7 +73,7 @@ object RemoteSparkRunner {
    * @return The path to the generated JAR file.
    */
   def createJarWithPipelines(files: Seq[File]): String = {
-    val jarFileName = "pipeline.jar"
+    val jarFileName = "pipelines.jar"
     val jarFilePath = Paths.get(jarDirectoryPath, jarFileName).toString
 
     val jarStream = new JarOutputStream(new FileOutputStream(jarFilePath))

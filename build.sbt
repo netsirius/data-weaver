@@ -25,7 +25,6 @@ libraryDependencies ++= Seq(
 
   //logging
   "org.slf4j" % "slf4j-api" % "1.7.36",
-  "ch.qos.logback" % "logback-classic" % "1.4.7",
 
   //YAML
   "io.circe" %% "circe-core" % "0.14.5",
@@ -47,3 +46,21 @@ libraryDependencies ++= Seq(
 resolvers ++= Seq(
   "Spark Packages Repo" at "https://dl.bintray.com/spark-packages/maven/"
 )
+
+// Merge strategy rules
+assembly / assemblyMergeStrategy := {
+  case x if Assembly.isConfigFile(x) =>
+    MergeStrategy.concat
+  case PathList(ps@_*)
+    if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
+    MergeStrategy.rename
+  case PathList("META-INF", _@_*) =>
+    MergeStrategy.discard
+  case _ =>
+    MergeStrategy.first
+}
+
+// Especificar la clase principal
+Compile / mainClass := Some("com.dataweaver.cli.CommandLineInterface")
+assembly / assemblyJarName := s"${name.value}.jar"
+assembly / test := {}

@@ -2,6 +2,7 @@ package com.dataweaver.config
 
 import com.typesafe.config.{Config, ConfigFactory}
 
+import java.nio.file.Paths
 import scala.util.Try
 
 /**
@@ -14,18 +15,28 @@ object AppConfig {
    * @return A `Try` containing the loaded configuration or an exception if there was an error.
    */
   def loadConfig: Try[Config] = Try {
-    val configPath = System.getProperty("user.dir") + "/config/flow.conf"
+    val configPath = Paths.get(System.getProperty("user.dir"), "weaver_project.conf").toString
     ConfigFactory.parseFile(new java.io.File(configPath))
   }
 
   /**
-   * Retrieves the Spark master URL from the provided configuration.
+   * Retrieves the path to the pipelines directory from the provided configuration.
    *
    * @param config The application configuration.
-   * @return The Spark master URL.
+   * @return The path to the pipelines directory.
    */
-  def getSparkMaster(config: Config): String = {
-    config.getString("spark.master")
+  def getPipelinesDir(config: Config): String = {
+    config.getString("weaver.pipelines_dir")
+  }
+
+  /**
+   * Retrieves the default runner from the provided configuration.
+   *
+   * @param config The application configuration.
+   * @return The default runner.
+   */
+  def getDefaultRunner(config: Config): String = {
+    config.getString("weaver.default_runner")
   }
 
 }
