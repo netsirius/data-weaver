@@ -1,22 +1,20 @@
 package com.dataweaver.core
 
-import com.dataweaver.config.{AppConfig, DataPipelineConfig}
+import com.dataweaver.config.{DataPipelineConfig, DataWeaverConfig}
 import com.dataweaver.parsing.YAMLParser
 import com.dataweaver.pipeline.DataPipeline
 import org.apache.spark.sql.SparkSession
 import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Paths}
-import scala.io.Source
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 /**
  * Manages the execution of data flows defined in YAML configuration files.
  */
 class DataFlowManager {
+
   private val logger = LoggerFactory.getLogger(getClass)
-  private val maxRetries = 3 // Maximum number of retries
 
   /**
    * Executes data flows based on the specified tag and regex criteria.
@@ -27,17 +25,13 @@ class DataFlowManager {
   def executeDataFlows(tag: Option[String], regex: Option[String]): Unit = {
     implicit val spark = SparkSession.builder.appName("DataWeaverApp").getOrCreate()
     try {
-      val yamlDirectory = loadYamlDirectory()
-      val yamlFiles = Files.list(Paths.get(yamlDirectory))
-        .toArray
-        .map(_.asInstanceOf[java.nio.file.Path])
-        .filter(path => regex.forall(r => path.toString.matches(r)) || regex.isEmpty)
+      val yamlFiles = getYamlFiles(tag, regex)
 
       yamlFiles.foreach { path =>
-        val content = Source.fromFile(path.toFile).mkString
-        YAMLParser.parse(content).foreach { config =>
-          if (tag.forall(config.tag.contains)) {
-            runWithRetry(config, maxRetries)
+        val config = YAMLParser.parse(path.toFile.getAbsolutePath)
+        config.foreach { pipelineConfig =>
+          if (tag.forall(pipelineConfig.tag.contains)) {
+            runPipeline(pipelineConfig)
           }
         }
       }
@@ -46,35 +40,39 @@ class DataFlowManager {
     }
   }
 
-  private def loadYamlDirectory(): String = {
-    val yamlDirectoryResult = AppConfig.loadConfig.flatMap { config =>
-      Try(config.getString("yaml.directory"))
-    }
-
-    yamlDirectoryResult match {
-      case Success(yamlDirectory) => yamlDirectory
-      case Failure(ex) =>
-        logger.error("Error loading 'yaml.directory' from configuration", ex)
-        throw ex
+  /**
+   * Retrieves the YAML files to be processed, filtered by the provided tag and regex.
+   *
+   * @param tag   Optional tag for filtering.
+   * @param regex Optional regex for filtering.
+   * @return A sequence of Paths to the YAML files.
+   */
+  private def getYamlFiles(tag: Option[String], regex: Option[String]): Seq[java.nio.file.Path] = {
+    DataWeaverConfig.load() match {
+      case Success(config) =>
+        logger.info("Project config loaded successfully.")
+        val yamlDirectory = config.getPipelinesDir
+        Files.list(Paths.get(yamlDirectory))
+          .toArray
+          .map(_.asInstanceOf[java.nio.file.Path])
+          .filter(path => regex.forall(r => path.toString.matches(r)) || tag.forall(t => path.toString.contains(t)))
+      case Failure(exception) =>
+        logger.error(s"Failed to load project configuration: ${exception.getMessage}")
+        Seq.empty
     }
   }
 
-  private def runWithRetry(config: DataPipelineConfig, retries: Int)(implicit spark: SparkSession): Unit = {
-    var attempts = 0
-    var success = false
-    while (attempts < retries && !success) {
-      try {
-        new DataPipeline(config).run()
-        success = true
-      } catch {
-        case NonFatal(e) =>
-          attempts += 1
-          logger.error(s"Error on attempt $attempts to execute pipeline ${config.name}", e)
-          if (attempts >= retries) {
-            logger.error(s"Reached the maximum number of retries for pipeline ${config.name}")
-          }
-      }
+  /**
+   * Runs a single data pipeline defined in a DataPipelineConfig.
+   *
+   * @param pipelineConfig The configuration for the data pipeline.
+   */
+  private def runPipeline(pipelineConfig: DataPipelineConfig)(implicit spark: SparkSession): Unit = {
+    try {
+      new DataPipeline(pipelineConfig).run()
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error running pipeline ${pipelineConfig.name}: ${e.getMessage}", e)
     }
   }
 }
-

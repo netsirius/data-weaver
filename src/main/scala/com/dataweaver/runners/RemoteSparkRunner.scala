@@ -1,5 +1,7 @@
 package com.dataweaver.runners
 
+import org.apache.spark.launcher.SparkLauncher
+
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.{Files, Paths}
 import java.util.jar.{JarEntry, JarOutputStream}
@@ -9,7 +11,7 @@ import scala.util.{Failure, Success, Try}
 /**
  * A runner for executing Spark jobs remotely.
  */
-class RemoteSparkRunner extends Runner {
+class RemoteSparkRunner(jarPath: String, clusterUrl: String, appName: String) extends Runner {
   /**
    * Run the Spark job using the specified pipelines and configurations.
    *
@@ -25,9 +27,7 @@ class RemoteSparkRunner extends Runner {
     RemoteSparkRunner.createJarWithPipelines(filteredFiles)
 
     // Execute spark-submit
-    val clusterUrl = "spark://cluster-url:port"
-    val appName = "my-app"
-    RemoteSparkRunner.executeSparkSubmit(RemoteSparkRunner.jarDirectoryPath, clusterUrl, appName)
+    RemoteSparkRunner.executeSparkJob(jarPath, clusterUrl, appName, tag.getOrElse(""), regex.getOrElse(""))
   }
 }
 
@@ -122,6 +122,41 @@ object RemoteSparkRunner {
       case Failure(exception) =>
         // An exception occurred while executing the command
         println(s"Error executing spark-submit: ${exception.getMessage}")
+      // You can add additional error handling here if necessary
+    }
+  }
+
+  /**
+   * Execute the Spark job with the specified JAR using SparkLauncher.
+   *
+   * @param jarPath    The path to the JAR file.
+   * @param clusterUrl The Spark cluster URL.
+   * @param appName    The name of the Spark application.
+   */
+  def executeSparkJob(jarPath: String, clusterUrl: String, appName: String, tag: String, regex: String): Unit = {
+    val sparkLauncher = new SparkLauncher()
+      .setAppResource(jarPath)
+      .setMaster(clusterUrl)
+      .setAppName(appName)
+      .setMainClass("com.dataweaver.Main")
+      .addAppArgs(tag, regex)
+
+    Try(sparkLauncher.launch()) match {
+      case Success(process) =>
+        // Wait for the Spark job to finish
+        val exitCode = process.waitFor()
+        if (exitCode == 0) {
+          // Success: The Spark job completed without errors
+          println("Spark job completed successfully.")
+        } else {
+          // The Spark job finished with a non-zero exit code (indicating an error)
+          println(s"Spark job failed with exit code: $exitCode")
+          // You can add additional error handling here if necessary
+        }
+
+      case Failure(exception) =>
+        // An exception occurred while launching the Spark job
+        println(s"Error launching Spark job: ${exception.getMessage}")
       // You can add additional error handling here if necessary
     }
   }

@@ -46,6 +46,7 @@ tag: example
 dataSources:
   - id: source1
     type: MySQL
+    query: SELECT * FROM mytable
     config:
       connectionString: jdbc:mysql://localhost:3306/mydb
       tableName: mytable

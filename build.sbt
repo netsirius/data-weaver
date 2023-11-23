@@ -33,13 +33,15 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser" % "0.14.5",
 
   // Api
-  "com.typesafe.play" %% "play" % "2.9.0", // Versión más reciente al momento
-  "com.typesafe.play" %% "play-slick" % "5.2.0", // Versión más reciente al momento
-  "com.typesafe.play" %% "play-json" % "2.10.3", // Versión más reciente al momento
+  "com.typesafe.play" %% "play" % "2.9.0",
+  "com.typesafe.play" %% "play-slick" % "5.2.0",
+  "com.typesafe.play" %% "play-json" % "2.10.3",
 
   // Testing
-  "org.scalatest" %% "scalatest" % "3.2.17" % Test, // Versión más reciente al momento
-  "org.scalactic" %% "scalactic" % "3.2.17" % Test // Versión más reciente al momento
+  "org.scalatest" %% "scalatest" % "3.2.17" % Test,
+  "org.scalactic" %% "scalactic" % "3.2.17" % Test,
+  "org.mockito" %% "mockito-scala" % "1.17.29" % Test
+
 )
 
 // Añadir repositorios adicionales si es necesario
