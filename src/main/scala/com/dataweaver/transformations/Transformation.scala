@@ -5,7 +5,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 /**
  * A trait defining the contract for applying transformations to DataFrames.
  */
-trait Transformation {
+trait Transformation extends Serializable {
   /**
    * Applies a transformation to the provided DataFrames and returns the result as a DataFrame.
    *

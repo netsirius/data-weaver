@@ -1,7 +1,6 @@
-package com.dataweaver.sources
+package com.dataweaver.reader
 
 import com.dataweaver.config.DataSourceConfig
-import com.dataweaver.sources.manager.{DataSourceManager, SQLManager}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 
@@ -11,14 +10,14 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
  * @param config The configuration for the MySQL data source.
  */
 
-class MySQLSource(config: DataSourceConfig, manager: DataSourceManager) extends DataSource {
+class SQLReader(config: DataSourceConfig) extends DataReader {
 
   /**
    * The name of the data source.
    *
    * @return The name of the data source.
    */
-  def name: String = config.id
+  def sourceName: String = config.id
 
   /**
    * Reads data from the MySQL database using the JDBC connection string and table name from the configuration.
@@ -26,7 +25,7 @@ class MySQLSource(config: DataSourceConfig, manager: DataSourceManager) extends 
    * @param spark The SparkSession for executing the read operation.
    * @return A DataFrame containing the data from the MySQL database.
    */
-  override def readData(manager: SQLManager = new SQLManager {})(implicit spark: SparkSession): DataFrame = {
+  override def readData()(implicit spark: SparkSession): DataFrame = {
     val host = config.config.getOrElse("host", throw new IllegalArgumentException("Connection host is required"))
     val db = config.config.getOrElse("db", throw new IllegalArgumentException("Connection db is required"))
     val query = config.config.getOrElse("query", throw new IllegalArgumentException("Query is required"))
@@ -35,12 +34,12 @@ class MySQLSource(config: DataSourceConfig, manager: DataSourceManager) extends 
     val user = config.config.getOrElse("user", throw new IllegalArgumentException("User name is required"))
     val password = config.config.getOrElse("password", throw new IllegalArgumentException("Password is required"))
 
-    val connectionString = manager.getConnection(url, user, password)
-
     spark.read
       .format("jdbc")
       .option("driver", "com.mysql.cj.jdbc.Driver")
       .option("url", url)
+      .option("user", user)
+      .option("password", password)
       .option("dbtable", query)
       .load()
   }

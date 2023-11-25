@@ -2,6 +2,7 @@ package com.dataweaver.transformations
 
 import com.dataweaver.config.TransformationConfig
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.slf4j.LoggerFactory
 
 /**
  * A Transformation implementation for applying SQL transformations to DataFrames.
@@ -9,6 +10,8 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
  * @param config The configuration for the SQL transformation.
  */
 class SQLTransformation(config: TransformationConfig) extends Transformation {
+
+  private val logger = LoggerFactory.getLogger(getClass)
 
   /**
    * Applies the SQL transformation to the provided DataFrames using temporary views.
@@ -18,6 +21,10 @@ class SQLTransformation(config: TransformationConfig) extends Transformation {
    * @return A DataFrame containing the result of the SQL transformation.
    */
   override def applyTransformation(dataFrames: Map[String, DataFrame])(implicit spark: SparkSession): DataFrame = {
+
+    // Ensure that the query is defined
+    val query = config.query.getOrElse(throw new IllegalArgumentException("Query is required"))
+
     // Ensure that all required sources are available
     config.sources.foreach { sourceId =>
       if (!dataFrames.contains(sourceId)) {
@@ -31,6 +38,15 @@ class SQLTransformation(config: TransformationConfig) extends Transformation {
     }
 
     // Execute the SQL query using the temporary views
-    spark.sql(config.query)
+    try {
+      val df = spark.sql(query)
+      // Ensure query is correct before executing
+      df.queryExecution.analyzed
+      df
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error executing SQL query: $query", e)
+        throw e
+    }
   }
 }

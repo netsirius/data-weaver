@@ -1,9 +1,10 @@
 package com.dataweaver.runners
 
+import com.dataweaver.config.DataWeaverConfig
 import org.apache.spark.launcher.SparkLauncher
+import org.slf4j.LoggerFactory
 
 import java.io.{File, FileInputStream, FileOutputStream}
-import java.nio.file.{Files, Paths}
 import java.util.jar.{JarEntry, JarOutputStream}
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
@@ -11,23 +12,32 @@ import scala.util.{Failure, Success, Try}
 /**
  * A runner for executing Spark jobs remotely.
  */
-class RemoteSparkRunner(jarPath: String, clusterUrl: String, appName: String) extends Runner {
+class RemoteSparkRunner(appName: String, configPath: String) extends Runner {
+  private val logger = LoggerFactory.getLogger(getClass)
+
   /**
    * Run the Spark job using the specified pipelines and configurations.
    *
-   * @param pipelinesFolder The folder containing pipeline files.
-   * @param tag             An optional tag to filter pipeline files.
-   * @param regex           An optional regex pattern to filter pipeline files.
+   * @param projectConfig The project config
+   * @param tag           An optional tag to filter pipeline files.
+   * @param regex         An optional regex pattern to filter pipeline files.
    */
-  override def run(pipelinesFolder: String, tag: Option[String], regex: Option[String]): Unit = {
-    // Get and filter pipeline files
-    val filteredFiles = RemoteSparkRunner.getFilteredPipelineFiles(pipelinesFolder, tag, regex)
+  override def run(appConfig: DataWeaverConfig, tag: Option[String], regex: Option[String]): Unit = {
+
+    val filteredPipelineFiles = RemoteSparkRunner.getFilteredPipelineFiles(appConfig.getPipelinesDir, tag, regex)
+    val configFiles = RemoteSparkRunner.getConfigFiles(configPath)
 
     // Generate the JAR with pipeline files
-    RemoteSparkRunner.createJarWithPipelines(filteredFiles)
+    RemoteSparkRunner.createJarWithPipelines(appConfig.getWaverJarPath, filteredPipelineFiles)
 
-    // Execute spark-submit
-    RemoteSparkRunner.executeSparkJob(jarPath, clusterUrl, appName, tag.getOrElse(""), regex.getOrElse(""))
+    // Generate the JAR with config files
+    RemoteSparkRunner.createJarWithConfig(appConfig.getWaverJarPath, configFiles)
+
+    // Prepare app args
+    val args = Seq(tag, regex).filter(_.isDefined).map(_.get)
+
+    // Execute the Spark job
+    RemoteSparkRunner.executeSparkJob(appConfig.getWaverJarPath, appConfig.getClusterUrl, appName, args)
   }
 }
 
@@ -35,9 +45,6 @@ class RemoteSparkRunner(jarPath: String, clusterUrl: String, appName: String) ex
  * Companion object for RemoteSparkRunner.
  */
 object RemoteSparkRunner {
-  // Create a temporary directory for JAR files
-  private val jarDirectory = Files.createTempDirectory("weaver_jars")
-  private val jarDirectoryPath = jarDirectory.toString
 
   /**
    * Get filtered pipeline files from the specified folder based on tag and regex patterns.
@@ -66,17 +73,19 @@ object RemoteSparkRunner {
     filteredFiles
   }
 
+  def getConfigFiles(configFolder: String): Seq[File] = {
+    val configDirectory = new File(configFolder)
+    configDirectory.listFiles()
+  }
+
   /**
    * Create a JAR file containing the specified files.
    *
    * @param files The sequence of files to include in the JAR.
    * @return The path to the generated JAR file.
    */
-  def createJarWithPipelines(files: Seq[File]): String = {
-    val jarFileName = "pipelines.jar"
-    val jarFilePath = Paths.get(jarDirectoryPath, jarFileName).toString
-
-    val jarStream = new JarOutputStream(new FileOutputStream(jarFilePath))
+  def createJarWithPipelines(jarPath: String, files: Seq[File]) = {
+    val jarStream = new JarOutputStream(new FileOutputStream(jarPath))
 
     files.foreach { file =>
       val entryName = s"pipelines/${file.getName}"
@@ -97,8 +106,30 @@ object RemoteSparkRunner {
     }
 
     jarStream.close()
+  }
 
-    jarFilePath
+  def createJarWithConfig(jarPath: String, files: Seq[File]) = {
+    val jarStream = new JarOutputStream(new FileOutputStream(jarPath))
+
+    files.foreach { file =>
+      val entryName = s"pipelines_config/${file.getName}"
+      val entry = new JarEntry(entryName)
+      jarStream.putNextEntry(entry)
+
+      val fileStream = new FileInputStream(file)
+      val buffer = new Array[Byte](1024)
+      var bytesRead = fileStream.read(buffer)
+
+      while (bytesRead != -1) {
+        jarStream.write(buffer, 0, bytesRead)
+        bytesRead = fileStream.read(buffer)
+      }
+
+      fileStream.close()
+      jarStream.closeEntry()
+    }
+
+    jarStream.close()
   }
 
   /**
@@ -133,13 +164,15 @@ object RemoteSparkRunner {
    * @param clusterUrl The Spark cluster URL.
    * @param appName    The name of the Spark application.
    */
-  def executeSparkJob(jarPath: String, clusterUrl: String, appName: String, tag: String, regex: String): Unit = {
+  def executeSparkJob(jarPath: String, clusterUrl: String, appName: String, args: Seq[String]): Unit = {
+
     val sparkLauncher = new SparkLauncher()
       .setAppResource(jarPath)
       .setMaster(clusterUrl)
       .setAppName(appName)
       .setMainClass("com.dataweaver.Main")
-      .addAppArgs(tag, regex)
+      .addSparkArg("--packages", "mysql:mysql-connector-java:8.0.33")
+      .addAppArgs(args: _*)
 
     Try(sparkLauncher.launch()) match {
       case Success(process) =>

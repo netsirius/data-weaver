@@ -6,7 +6,7 @@ import scopt.OParser
 
 import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Paths}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 /**
  * Parses command line arguments for the DataWeaver application.
@@ -18,10 +18,11 @@ object CommandLineInterface {
                      command: String = "",
                      regex: Option[String] = None,
                      projectName: Option[String] = None,
+                     configPath: Option[String] = None,
                      runner: String = "local",
                      appName: String = "DataWeaver",
                      tag: Option[String] = None,
-                     init: Boolean = false // Nueva opción para el comando "init"
+                     init: Boolean = false
                    )
 
   /**
@@ -51,30 +52,18 @@ object CommandLineInterface {
             println("Please specify a project name using --projectName.")
         }
       case "run" =>
-        DataWeaverConfig.load() match {
-          case Success(project_config) =>
-            val pipelinesDir = project_config.getPipelinesDir
+        val configPath = config.configPath.getOrElse(System.getProperty("user.dir") + "/config")
+        DataWeaverConfig.load(configPath) match {
+          case Success(projectConfig) =>
             val runner_type: String = config.runner
 
             val runner = runner_type match {
               case "local" => new LocalSparkRunner
               case "remote" =>
-                val waver_jar_path = Try(project_config.getWaverJarPath) match {
-                  case Success(path) => path
-                  case Failure(ex) =>
-                    println(s"Error loading configuration: ${ex.getMessage}")
-                    return
-                }
-                val waver_cluster_url = Try(project_config.getClusterUrl) match {
-                  case Success(path) => path
-                  case Failure(ex) =>
-                    println(s"Error loading configuration: ${ex.getMessage}")
-                    return
-                }
-                new RemoteSparkRunner(waver_jar_path, waver_cluster_url, config.appName)
+                new RemoteSparkRunner(config.appName, configPath)
               case _ => throw new IllegalArgumentException("Unspecified or incorrect runner type")
             }
-            runner.run(pipelinesDir, config.tag, config.regex)
+            runner.run(projectConfig, config.tag, config.regex)
           case Failure(ex) =>
             println(s"Error loading configuration: ${ex.getMessage}")
         }
@@ -110,6 +99,10 @@ object CommandLineInterface {
           .action((_, c) => c.copy(command = "run"))
           .text("Runs the data pipelines.")
           .children(
+            opt[String]("configPath")
+              .optional()
+              .action((x, c) => c.copy(configPath = Some(x)))
+              .text("Specifies the path to the project configuration file."),
             opt[String]("runner")
               .optional()
               .action((x, c) => c.copy(runner = x))

@@ -1,7 +1,7 @@
 package com.dataweaver.factories
 
 import com.dataweaver.config.DataSourceConfig
-import com.dataweaver.sources.{DataSource, MySQLSource}
+import com.dataweaver.reader.{DataReader, SQLReader, TestReader}
 
 /**
  * Factory for creating data source instances based on the provided configuration.
@@ -15,9 +15,10 @@ object DataSourceFactory {
    * @return A data source instance.
    * @throws IllegalArgumentException If the data source type is not supported.
    */
-  def create(config: DataSourceConfig): DataSource = {
+  def create(config: DataSourceConfig): DataReader = {
     config.`type` match {
-      case "MySQL" => new MySQLSource(config)
+      case "Test" => new TestReader(config)
+      case "MySQL" => new SQLReader(config)
       case _ => throw new IllegalArgumentException("Data source type is not supported")
     }
   }

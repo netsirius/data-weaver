@@ -26,22 +26,26 @@ libraryDependencies ++= Seq(
   //logging
   "org.slf4j" % "slf4j-api" % "1.7.36",
 
+  //Json
+  "org.json4s" %% "json4s-native" % "4.0.6",
+
   //YAML
   "io.circe" %% "circe-core" % "0.14.5",
   "io.circe" %% "circe-yaml" % "0.15.1",
   "io.circe" %% "circe-generic" % "0.14.5",
-  "io.circe" %% "circe-parser" % "0.14.5",
 
   // Api
   "com.typesafe.play" %% "play" % "2.9.0",
   "com.typesafe.play" %% "play-slick" % "5.2.0",
   "com.typesafe.play" %% "play-json" % "2.10.3",
 
+  // Database drivers
+  "mysql" % "mysql-connector-java" % "8.0.33",
+
   // Testing
   "org.scalatest" %% "scalatest" % "3.2.17" % Test,
   "org.scalactic" %% "scalactic" % "3.2.17" % Test,
   "org.mockito" %% "mockito-scala" % "1.17.29" % Test
-
 )
 
 // Añadir repositorios adicionales si es necesario

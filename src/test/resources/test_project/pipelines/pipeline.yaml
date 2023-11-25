@@ -1,0 +1,33 @@
+name: ExamplePipeline
+tag: example
+dataSources:
+  - id: testSource
+    type: MySQL
+    query: >
+      SELECT name
+      FROM test_table
+    config:
+      readMode: ReadOnce # ReadOnce, Incremental..
+      connection: testConnection # Connection name related to the defined connections inside application.conf
+transformations:
+  - id: transform1
+    type: SQLTransformation
+    sources:
+      - testSource # Source name related to the defined data sources inside pipeline.yaml
+    query: >
+      SELECT name as id
+      FROM testSource
+  - id: transform2
+    type: SQLTransformation
+    sources:
+      - transform1 # Source name related to the defined data sources inside pipeline.yaml
+    query: >
+      SELECT id
+      FROM transform1
+      WHERE id = "Alice"
+sinks:
+  - id: sink1
+    type: BigQuery
+    config:
+      saveMode: Append # Append, Overwrite, Merge...
+      profile: testProfile # Profile name related to the defined profiles inside application.conf

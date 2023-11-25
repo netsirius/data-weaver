@@ -19,3 +19,4 @@ Thumbs.db
 
 # Ignore user-specific files
 .idea_modules/
+/project/target/

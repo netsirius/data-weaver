@@ -2,10 +2,7 @@ package com.dataweaver.sinks
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-/**
- * A trait defining the contract for writing data to external sinks.
- */
-trait DataSink extends Serializable {
+class TestSink extends DataSink {
   /**
    * Writes the provided DataFrame to an external sink.
    *
@@ -13,5 +10,10 @@ trait DataSink extends Serializable {
    * @param pipelineName The name of the pipeline.
    * @param spark        The SparkSession for executing the write operation.
    */
-  def writeData(data: DataFrame, pipelineName: String)(implicit spark: SparkSession): Unit
+  override def writeData(data: DataFrame, pipelineName: String)(implicit spark: SparkSession): Unit = {
+    val outputPath = s"src/test/resources/output_test/$pipelineName.json"
+
+    data.coalesce(1).write.mode("overwrite").json(outputPath)
+
+  }
 }

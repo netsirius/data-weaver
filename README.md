@@ -44,27 +44,34 @@ Here's an example of a simple pipeline configuration:
 name: ExamplePipeline
 tag: example
 dataSources:
-  - id: source1
+  - id: testSource
     type: MySQL
-    query: SELECT * FROM mytable
+    query: >
+      SELECT name
+      FROM test_table
     config:
-      connectionString: jdbc:mysql://localhost:3306/mydb
-      tableName: mytable
+      readMode: ReadOnce # ReadOnce, Incremental..
+      connection: testConnection # Connection name related to the defined connections inside application.conf
 transformations:
   - id: transform1
     type: SQLTransformation
     sources:
-      - source1
-    targetId: transformedData
-    query: SELECT * FROM source1 WHERE column1 = 'value'
+      - source1 # Source name related to the defined data sources inside pipeline.yaml
+    query: >
+      SELECT name as id
+      FROM testSource
+      WHERE column1 = 'value'
+  - id: transform2
+    type: ScalaTransformation
+    sources:
+      - transform1 # Source name related to the defined data sources or transformations inside pipeline.yaml
+    action: dropDuplicates
 sinks:
   - id: sink1
     type: BigQuery
     config:
-      projectId: my-project
-      datasetName: my-dataset
-      tableName: my-table
-      temporaryGcsBucket: my-bucket
+      saveMode: Append # Append, Overwrite, Merge...
+      profile: testProfile # Profile name related to the defined profiles inside application.conf
 ```
 
 ### Running Data Pipelines

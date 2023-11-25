@@ -18,27 +18,50 @@ class DataPipeline(config: DataPipelineConfig)(implicit spark: SparkSession) {
   private val logger = LoggerFactory.getLogger(getClass)
 
   /**
-   * Runs the data pipeline, which includes applying transformations to input data and writing
-   * the result to data sinks.
+   * Executes the data pipeline. This method orchestrates the flow of data through various stages of the pipeline,
+   * including fetching data from sources, applying transformations, and writing the transformed data to sinks.
    */
   def run(): Unit = {
-    // Obtain and cache DataFrames from data sources, registering them as temporary views.
-    val dataFrames = config.dataSources.map { sourceConfig =>
+    logger.info("Starting data pipeline execution.")
+
+    // Initialize a map to hold DataFrames fetched from data sources.
+    val dataFrames: Map[String, DataFrame] = config.dataSources.map { sourceConfig =>
+      logger.info(s"Fetching data for source: ${sourceConfig.id}")
       val df = DataSourceCache.getOrCreate(sourceConfig)
       (sourceConfig.id, df)
     }.toMap
 
-    // Apply each transformation, which may use one or more of the created temporary views.
-    var finalDF: DataFrame = null
+    logger.info("Data sources fetched successfully.")
+
+    // Initialize a map to store the results of transformations.
+    var transformationResults: Map[String, DataFrame] = dataFrames
+
+    // Iterate over each transformation configuration in the pipeline.
     config.transformations.foreach { transConfig =>
+      logger.info(s"Applying transformation: ${transConfig.id}")
+
       val transformation = TransformationFactory.create(transConfig)
-      finalDF = transformation.applyTransformation(dataFrames)
+      val transformedDF = transformation.applyTransformation(transformationResults)
+
+      transformationResults += (transConfig.id -> transformedDF)
+
+      logger.info(s"Transformation '${transConfig.id}' applied successfully.")
     }
 
-    // Write the final DataFrame to data sinks.
+    // Retrieve the final DataFrame to be written to the sinks.
+    val finalDF = transformationResults.last._2
+    logger.info("All transformations applied successfully.")
+
+    // Iterate over each sink configuration and write the final DataFrame.
     config.sinks.foreach { sinkConfig =>
+      logger.info(s"Writing data to sink: ${sinkConfig.id}")
       val sink = DataSinkFactory.create(sinkConfig)
-      sink.writeData(finalDF)
+      sink.writeData(finalDF, config.name)
+      logger.info(s"Data written to sink '${sinkConfig.id}' successfully.")
     }
+
+    logger.info("Data pipeline execution completed.")
   }
+
+
 }
