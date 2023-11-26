@@ -1,26 +1,30 @@
-package com.dataweaver.transformations
+package com.dataweaver.transformation
 
 import com.dataweaver.config.TransformationConfig
+import org.apache.log4j.LogManager
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.slf4j.LoggerFactory
 
-/**
- * A Transformation implementation for applying SQL transformations to DataFrames.
- *
- * @param config The configuration for the SQL transformation.
- */
+/** A Transformation implementation for applying SQL transformations to DataFrames.
+  *
+  * @param config
+  *   The configuration for the SQL transformation.
+  */
 class SQLTransformation(config: TransformationConfig) extends Transformation {
 
-  private val logger = LoggerFactory.getLogger(getClass)
+  private val logger = LogManager.getLogger(getClass)
 
-  /**
-   * Applies the SQL transformation to the provided DataFrames using temporary views.
-   *
-   * @param dataFrames A map of source DataFrame names to DataFrames.
-   * @param spark      The SparkSession for executing the transformation.
-   * @return A DataFrame containing the result of the SQL transformation.
-   */
-  override def applyTransformation(dataFrames: Map[String, DataFrame])(implicit spark: SparkSession): DataFrame = {
+  /** Applies the SQL transformation to the provided DataFrames using temporary views.
+    *
+    * @param dataFrames
+    *   A map of source DataFrame names to DataFrames.
+    * @param spark
+    *   The SparkSession for executing the transformation.
+    * @return
+    *   A DataFrame containing the result of the SQL transformation.
+    */
+  override def applyTransformation(
+      dataFrames: Map[String, DataFrame]
+  )(implicit spark: SparkSession): DataFrame = {
 
     // Ensure that the query is defined
     val query = config.query.getOrElse(throw new IllegalArgumentException("Query is required"))

@@ -4,7 +4,7 @@ echo "Por favor, ingrese su token de acceso para Azure Artifacts:"
 read -s AZURE_TOKEN
 
 # URL de tu JAR en Azure Artifacts
-AZURE_JAR_URL="https://tu-organizacion.azure.com/path/to/data-weaver.jar"
+AZURE_JAR_URL=""
 JAR_NAME="data-weaver.jar"
 INSTALL_DIR="$HOME/.data-weaver"
 BIN_DIR="$HOME/bin"
@@ -15,7 +15,7 @@ mkdir -p "$BIN_DIR"
 
 # Descargar el JAR
 echo "Descargando Data Weaver..."
-curl -u :$AZURE_TOKEN -o "$INSTALL_DIR/$JAR_NAME" "$AZURE_JAR_URL"
+# curl -u :$AZURE_TOKEN -o "$INSTALL_DIR/$JAR_NAME" "$AZURE_JAR_URL"
 
 # Hacer el JAR ejecutable
 chmod +x "$INSTALL_DIR/$JAR_NAME"

@@ -8,36 +8,36 @@ lazy val root = (project in file("."))
     version := "0.1.0-SNAPSHOT"
   )
 
-scalaVersion := "2.13.12"
+scalaVersion := "2.12.17"
 
 // Spark version compatible con tu versión de Scala
 val sparkVersion = "3.5.0"
 
 libraryDependencies ++= Seq(
   // Apache Spark
-  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-core" % sparkVersion % "compile",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "compile",
+  "org.apache.spark" %% "spark-streaming" % sparkVersion % "compile",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "compile",
+  "com.typesafe" % "config" % "1.4.2",
 
   // Cli
   "com.github.scopt" %% "scopt" % "4.1.0",
 
-  //logging
+  // logging
   "org.slf4j" % "slf4j-api" % "1.7.36",
 
-  //Json
-  "org.json4s" %% "json4s-native" % "4.0.6",
+  // Json
 
-  //YAML
+  "org.json4s" %% "json4s-ast" % "3.6.7",
+  "org.json4s" %% "json4s-native" % "3.6.7",
+  "org.json4s" %% "json4s-jackson" % "3.6.7",
+  "org.json4s" %% "json4s-scalap" % "3.6.7",
+
+  // YAML
   "io.circe" %% "circe-core" % "0.14.5",
   "io.circe" %% "circe-yaml" % "0.15.1",
   "io.circe" %% "circe-generic" % "0.14.5",
-
-  // Api
-  "com.typesafe.play" %% "play" % "2.9.0",
-  "com.typesafe.play" %% "play-slick" % "5.2.0",
-  "com.typesafe.play" %% "play-json" % "2.10.3",
 
   // Database drivers
   "mysql" % "mysql-connector-java" % "8.0.33",
@@ -57,10 +57,9 @@ resolvers ++= Seq(
 assembly / assemblyMergeStrategy := {
   case x if Assembly.isConfigFile(x) =>
     MergeStrategy.concat
-  case PathList(ps@_*)
-    if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
+  case PathList(ps @ _*) if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
     MergeStrategy.rename
-  case PathList("META-INF", _@_*) =>
+  case PathList("META-INF", _ @_*) =>
     MergeStrategy.discard
   case _ =>
     MergeStrategy.first

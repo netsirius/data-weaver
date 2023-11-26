@@ -1,4 +1,4 @@
-package com.dataweaver.sinks
+package com.dataweaver.sink
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
