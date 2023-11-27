@@ -4,6 +4,7 @@ import com.dataweaver.config.DataWeaverConfig
 import org.apache.spark.launcher.{SparkAppHandle, SparkLauncher}
 
 import java.io.File
+import java.util.concurrent.CountDownLatch
 
 /** A runner for executing Spark jobs locally.
   */
@@ -26,23 +27,24 @@ class LocalSparkRunner(executionMode: String, appName: String = "Data Waver App"
 
     val appConfig = DataWeaverConfig.load(configPath).get
 
-    val filteredPipelineFiles =
-      RunnerUtils.getFilteredPipelineFiles(appConfig.getPipelinesDir, tag, regex)
-    val configFiles = RunnerUtils.getConfigFiles(configPath)
+    // val filteredPipelineFiles =
+    //  RunnerUtils.getFilteredPipelineFiles(appConfig.getPipelinesDir, tag, regex)
+    // val configFiles = RunnerUtils.getConfigFiles(configPath)
 
     // Generate the JAR with pipeline files
-    RunnerUtils.addFilesToJar(appConfig.getWaverJarPath, "pipelines", filteredPipelineFiles)
+    // RunnerUtils.addFilesToJar(appConfig.getWaverJarPath, "pipelines", filteredPipelineFiles)
 
     // Generate the JAR with config files
-    RunnerUtils.addFilesToJar(appConfig.getWaverJarPath, "pipelines_config", configFiles)
+    // RunnerUtils.addFilesToJar(appConfig.getWaverJarPath, "pipelines_config", configFiles)
 
     // Prepare app args
     val tagArg: Seq[String] = tag.map(value => Seq("--tag", value)).getOrElse(Seq.empty[String])
     val regexArg: Seq[String] =
       regex.map(value => Seq("--regex", value)).getOrElse(Seq.empty[String])
     val executionModeArg: Seq[String] = Seq("--executionMode", executionMode)
+    val appConf: Seq[String] = Seq("--configPath", configPath)
 
-    val args: Seq[String] = tagArg ++ regexArg ++ executionModeArg
+    val args: Seq[String] = tagArg ++ regexArg ++ executionModeArg ++ appConf
 
     // Execute the Spark job
     LocalSparkRunner.executeSparkJob(
@@ -85,15 +87,34 @@ object LocalSparkRunner {
       .redirectOutput(new File("/tmp/weaver.log"))
       .redirectError(new File("/tmp/weaver.err.log"))
 
-    sparkLauncher
-      .startApplication()
-      .addListener(new SparkAppHandle.Listener {
-        override def stateChanged(handle: SparkAppHandle): Unit = {
-          println(s"Spark job state changed: ${handle.getState}")
+    val latch = new CountDownLatch(1)
+
+    val listener = new SparkAppHandle.Listener {
+      override def stateChanged(handle: SparkAppHandle): Unit = {
+        println(s"Spark job state changed: ${handle.getState}")
+        if (handle.getState.isFinal) {
+          latch.countDown()
         }
-        override def infoChanged(handle: SparkAppHandle): Unit = {
-          println(s"Spark job info changed: ${handle.getState}")
-        }
-      })
+      }
+
+      override def infoChanged(handle: SparkAppHandle): Unit = {
+        println(s"Spark job info changed: ${handle.getState}")
+      }
+    }
+
+    val appHandle = sparkLauncher.startApplication(listener)
+
+    try {
+      latch.await()
+      appHandle.getState match {
+        case SparkAppHandle.State.FINISHED => println("The Spark job finished successfully.")
+        case SparkAppHandle.State.FAILED   => println("The Spark job failed.")
+        case _ => println("El Spark job finished with state: " + appHandle.getState)
+      }
+    } catch {
+      case e: InterruptedException =>
+        println("Error waiting for Spark job to finish: " + e.getMessage)
+    }
+
   }
 }

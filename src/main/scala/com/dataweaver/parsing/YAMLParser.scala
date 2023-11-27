@@ -22,6 +22,9 @@ object YAMLParser {
     val content = source.mkString
     source.close()
 
+    logger.info(s"Parsing YAML file: $pipelineFilePath")
+    logger.debug(s"YAML file contents: $content")
+
     decode[DataPipelineConfig](content) match {
       case Right(config) => Some(config)
       case Left(error) =>

@@ -1,14 +1,12 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.12.17"
 
 lazy val root = (project in file("."))
   .settings(
     name := "data-weaver",
     version := "0.1.0-SNAPSHOT"
   )
-
-scalaVersion := "2.12.17"
 
 // Spark version compatible con tu versión de Scala
 val sparkVersion = "3.5.0"
