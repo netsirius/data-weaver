@@ -36,7 +36,7 @@ class DataFlowExecutor(appConfig: DataWeaverConfig) {
 
       // Filter pipelines by tag and regex
       val filteredPipelineConfigs = updatedPipelineConfigs.filter { config =>
-        regex.forall(r => config.name.matches(r)) || tag.forall(t => config.tag.contains(t))
+        regex.forall(r => config.name.matches(r)) && tag.forall(t => config.tag.contains(t))
       }
 
       // TODO: Parallelize execution of data flows
@@ -66,7 +66,7 @@ class DataFlowExecutor(appConfig: DataWeaverConfig) {
       .toArray
       .map(_.asInstanceOf[java.nio.file.Path])
       .filter(path =>
-        regex.forall(r => path.toString.matches(r)) || tag.forall(t => path.toString.contains(t))
+        regex.forall(r => path.toString.matches(r)) && tag.forall(t => path.toString.contains(t))
       )
   }
 
