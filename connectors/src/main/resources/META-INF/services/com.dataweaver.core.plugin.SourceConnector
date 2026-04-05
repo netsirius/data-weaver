@@ -1,2 +1,4 @@
 com.dataweaver.connectors.sources.SQLSourceConnector
 com.dataweaver.connectors.sources.TestSourceConnector
+com.dataweaver.connectors.sources.PostgreSQLSourceConnector
+com.dataweaver.connectors.sources.FileSourceConnector
