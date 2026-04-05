@@ -7,6 +7,7 @@ class YAMLParserTest extends AnyFlatSpec with Matchers {
 
   "YAMLParser" should "parse a valid pipeline YAML" in {
     val result = YAMLParser.parseFile("core/src/test/resources/test_project/pipelines/pipeline.yaml")
+    result.left.foreach(e => println(s"PARSE ERROR: $e"))
     result.isRight shouldBe true
 
     val config = result.toOption.get

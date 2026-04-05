@@ -1,0 +1,95 @@
+[debug] Running TaskDef(com.dataweaver.core.config.VariableResolverTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.plugin.PluginRegistryTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.engine.EngineSelectorTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.config.ConnectionsLoaderTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.config.SchemaValidatorTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.config.ProfileApplierTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.config.YAMLParserTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.config.ConnectionResolverTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.config.PipelineConfigTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[debug] Running TaskDef(com.dataweaver.core.dag.DAGResolverTest, org.scalatest.tools.Framework$$anon$1@14c45684, false, [SuiteSelector])
+[info] VariableResolverTest:
+[info] VariableResolver
+[info] - should resolve env vars
+[info] - should resolve date.today
+[info] - should resolve date.yesterday
+[info] - should resolve date.format
+[info] - should resolve date.offset
+[info] - should resolve multiple variables
+[info] - should leave plain strings unchanged
+[info] - should throw on undefined env var
+[info] - should resolve a config map
+[info] ConnectionResolverTest:
+[info] ConnectionResolver
+[info] - should resolve env vars
+[info] - should leave non-variable strings unchanged
+[info] - should resolve multiple variables in one string
+[info] - should throw on unresolvable variable
+[info] - should resolve a full config map
+[info] SchemaValidatorTest:
+[info] SchemaValidator
+[info] - should pass a valid pipeline
+[info] - should report missing pipeline name
+[info] - should report sink referencing non-existent transform
+[info] - should report duplicate ids
+[info] - should report sink without source when transforms exist
+[info] DAGResolverTest:
+[info] DAGResolver
+[info] - should resolve a linear chain
+[info] - should detect independent transforms for parallel execution
+[info] - should detect cyclic dependencies
+[info] - should detect missing source references
+[info] PluginRegistryTest:
+[info] PluginRegistry
+[info] - should register and retrieve a source connector
+[info] - should register and retrieve a sink connector
+[info] - should register and retrieve a transform plugin
+[info] - should list available connectors
+[info] ProfileApplierTest:
+[info] ProfileApplier
+[info] - should override engine from profile
+[info] - should return unchanged config when no profile matches
+[info] - should return unchanged config when profiles is None
+[info] YAMLParserTest:
+[info] YAMLParser
+[info] - should parse a valid pipeline YAML
+[info] - should parse sink with explicit source routing
+[info] - should return error for non-existent file
+[info] - should return error for invalid YAML
+[info] EngineSelectorTest:
+[info] EngineSelector
+[info] - should select Spark when engine is 'spark'
+[info] - should select DuckDB when engine is 'local'
+[info] - should select DuckDB for auto mode
+[info] - should throw on unknown engine
+[info] PipelineConfigTest:
+[info] PipelineConfig
+[info] - should be constructable with defaults
+[info] SinkConfig
+[info] - should have explicit source routing
+[info] - should default source to None
+[info] ExecutionMode
+[info] - should parse valid modes
+[info] - should throw on invalid mode
+[info] ConnectionsLoaderTest:
+[info] ConnectionsLoader
+[info] - should load connections from YAML
+[info] - should return empty map for non-existent file
+[info] - should resolve connection config by name
+[info] - should throw for unknown connection name
+[info] Run completed in 341 milliseconds.
+[info] Total number of tests run: 47
+[info] Suites: completed 10, aborted 0
+[info] Tests: succeeded 47, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[debug] Passed tests:
+[debug] 	com.dataweaver.core.config.ConnectionResolverTest
+[debug] 	com.dataweaver.core.plugin.PluginRegistryTest
+[debug] 	com.dataweaver.core.config.VariableResolverTest
+[debug] 	com.dataweaver.core.config.ConnectionsLoaderTest
+[debug] 	com.dataweaver.core.dag.DAGResolverTest
+[debug] 	com.dataweaver.core.engine.EngineSelectorTest
+[debug] 	com.dataweaver.core.config.PipelineConfigTest
+[debug] 	com.dataweaver.core.config.ProfileApplierTest
+[debug] 	com.dataweaver.core.config.SchemaValidatorTest
+[debug] 	com.dataweaver.core.config.YAMLParserTest

@@ -1,0 +1,12 @@
+#Successful Tests
+#Sun Apr 05 20:16:56 CEST 2026
+com.dataweaver.core.config.ConnectionsLoaderTest=1775413016044
+com.dataweaver.core.config.SchemaValidatorTest=1775413015856
+com.dataweaver.core.config.ProfileApplierTest=1775413016037
+com.dataweaver.core.engine.EngineSelectorTest=1775413016037
+com.dataweaver.core.config.PipelineConfigTest=1775413015856
+com.dataweaver.core.dag.DAGResolverTest=1775413015863
+com.dataweaver.core.plugin.PluginRegistryTest=1775413015856
+com.dataweaver.core.config.ConnectionResolverTest=1775413015856
+com.dataweaver.core.config.YAMLParserTest=1775413016027
+com.dataweaver.core.config.VariableResolverTest=1775413015856

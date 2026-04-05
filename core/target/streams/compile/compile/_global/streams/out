@@ -1,0 +1,10 @@
+[error] /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/core/src/main/scala/com/dataweaver/core/config/ConnectionsLoader.scala:26:17: type mismatch;
+[error]  found   : scala.collection.immutable.Map[_1,scala.collection.immutable.Map[String,String]] where type _1 >: _1 <: String
+[error]  required: com.dataweaver.core.config.ConnectionsLoader.ConnectionMap
+[error]     (which expands to)  scala.collection.immutable.Map[String,Map[String,String]]
+[error]     }.getOrElse {
+[error]                 ^
+[error] /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/core/src/main/scala/com/dataweaver/core/config/YAMLParser.scala:24:20: could not find implicit value for parameter d: io.circe.Decoder[com.dataweaver.core.config.PipelineConfig]
+[error]       .flatMap(_.as[PipelineConfig])
+[error]                    ^
+[error] two errors found

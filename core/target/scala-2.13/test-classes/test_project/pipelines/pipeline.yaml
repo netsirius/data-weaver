@@ -1,0 +1,33 @@
+name: ExamplePipeline
+tag: example
+engine: auto
+dataSources:
+  - id: testSource
+    type: Test
+    query: >
+      SELECT name
+      FROM test_table
+    config:
+      readMode: ReadOnce
+transformations:
+  - id: transform1
+    type: SQL
+    sources:
+      - testSource
+    query: >
+      SELECT name as id
+      FROM testSource
+  - id: transform2
+    type: SQL
+    sources:
+      - transform1
+    query: >
+      SELECT id
+      FROM transform1
+      WHERE id = "Alice"
+sinks:
+  - id: sink1
+    type: Test
+    source: transform2
+    config:
+      saveMode: Overwrite

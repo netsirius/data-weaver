@@ -7,7 +7,7 @@ case class PipelineConfig(
     dataSources: List[DataSourceConfig] = List.empty,
     transformations: List[TransformationConfig] = List.empty,
     sinks: List[SinkConfig] = List.empty,
-    profiles: Option[Map[String, Map[String, Any]]] = None
+    profiles: Option[Map[String, Map[String, String]]] = None
 )
 
 case class DataSourceConfig(

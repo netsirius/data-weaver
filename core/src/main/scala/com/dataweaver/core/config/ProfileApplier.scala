@@ -22,11 +22,10 @@ object ProfileApplier {
     }
   }
 
-  private def applyOverrides(config: PipelineConfig, overrides: Map[String, Any]): PipelineConfig = {
+  private def applyOverrides(config: PipelineConfig, overrides: Map[String, String]): PipelineConfig = {
     var result = config
-    overrides.get("engine").foreach {
-      case e: String => result = result.copy(engine = e)
-      case _         =>
+    overrides.get("engine").foreach { e =>
+      result = result.copy(engine = e)
     }
     result
   }

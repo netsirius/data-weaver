@@ -1,0 +1,8 @@
+[debug] Created transactional ClassFileManager with tempDir = /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/core/target/scala-2.13/test-classes.bak
+[debug] About to delete class files:
+[debug] 	YAMLParserTest.class
+[debug] We backup class files:
+[debug] 	YAMLParserTest.class
+[debug] Registering generated classes:
+[debug] 	YAMLParserTest.class
+[debug] Removing the temporary directory used for backing up class files: /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/core/target/scala-2.13/test-classes.bak

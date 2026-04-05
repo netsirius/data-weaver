@@ -21,7 +21,7 @@ object ConnectionsLoader {
           }.toMap
         case Left(err) =>
           logger.error(s"Failed to parse connections file '$path': ${err.getMessage}")
-          Map.empty
+          Map.empty[String, Map[String, String]]
       }
     }.getOrElse {
       logger.warn(s"Connections file not found: $path")
