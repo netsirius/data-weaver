@@ -1,9 +1,0 @@
-[debug] Created transactional ClassFileManager with tempDir = /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/transformations/target/scala-2.13/classes.bak
-[debug] About to delete class files:
-[debug] We backup class files:
-[debug] Created transactional ClassFileManager with tempDir = /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/transformations/target/scala-2.13/classes.bak
-[debug] About to delete class files:
-[debug] We backup class files:
-[debug] Registering generated classes:
-[debug] 	SQLTransformPlugin.class
-[debug] Removing the temporary directory used for backing up class files: /Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/transformations/target/scala-2.13/classes.bak

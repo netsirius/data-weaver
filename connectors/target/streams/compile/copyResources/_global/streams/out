@@ -1,3 +1,0 @@
-[debug] Copy resource mappings: 
-[debug] 	(/Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/connectors/src/main/resources/META-INF/services/com.dataweaver.core.plugin.SourceConnector,/Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/connectors/target/scala-2.13/classes/META-INF/services/com.dataweaver.core.plugin.SourceConnector)
-[debug] 	(/Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/connectors/src/main/resources/META-INF/services/com.dataweaver.core.plugin.SinkConnector,/Users/hsantos/workspace/projects/apps/data-weaver/.claude/worktrees/angry-lichterman/connectors/target/scala-2.13/classes/META-INF/services/com.dataweaver.core.plugin.SinkConnector)

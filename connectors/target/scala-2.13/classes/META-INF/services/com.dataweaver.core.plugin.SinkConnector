@@ -1,4 +1,0 @@
-com.dataweaver.connectors.sinks.BigQuerySinkConnector
-com.dataweaver.connectors.sinks.TestSinkConnector
-com.dataweaver.connectors.sinks.FileSinkConnector
-com.dataweaver.connectors.sinks.DeltaLakeSinkConnector
