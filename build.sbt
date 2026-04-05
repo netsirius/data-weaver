@@ -29,7 +29,8 @@ lazy val core = (project in file("core"))
       "com.typesafe"      % "config"     % "1.4.3",
       "io.circe"         %% "circe-core"    % "0.14.10",
       "io.circe"         %% "circe-yaml"    % "0.15.1",
-      "io.circe"         %% "circe-generic" % "0.14.10"
+      "io.circe"         %% "circe-generic" % "0.14.10",
+      "org.duckdb"        % "duckdb_jdbc"   % "1.1.3"
     )
   )
 
@@ -42,7 +43,9 @@ lazy val connectors = (project in file("connectors"))
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided",
       "com.mysql"         % "mysql-connector-j" % "9.1.0",
-      "org.json4s"       %% "json4s-jackson" % "4.0.7"
+      "org.json4s"       %% "json4s-jackson" % "4.0.7",
+      "org.postgresql"    % "postgresql" % "42.7.4",
+      "io.delta"         %% "delta-spark" % "4.0.0" % "provided"
     )
   )
 

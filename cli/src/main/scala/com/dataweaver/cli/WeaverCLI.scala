@@ -1,6 +1,8 @@
 package com.dataweaver.cli
 
-import com.dataweaver.cli.commands.{ApplyCommand, DoctorCommand, ValidateCommand}
+import com.dataweaver.cli.commands._
+import com.dataweaver.core.config.ProfileApplier
+import com.dataweaver.core.engine.EngineSelector
 import org.apache.spark.sql.SparkSession
 import scopt.OParser
 
@@ -9,7 +11,8 @@ object WeaverCLI {
   case class Config(
       command: String = "",
       pipeline: Option[String] = None,
-      env: Option[String] = None
+      env: Option[String] = None,
+      inspectId: Option[String] = None
   )
 
   def main(args: Array[String]): Unit = {
@@ -34,6 +37,33 @@ object WeaverCLI {
             arg[String]("<pipeline>")
               .action((x, c) => c.copy(pipeline = Some(x)))
               .text("Path to pipeline YAML file")
+          ),
+        cmd("plan")
+          .action((_, c) => c.copy(command = "plan"))
+          .text("Dry-run: show what will be read/transformed/written")
+          .children(
+            arg[String]("<pipeline>")
+              .action((x, c) => c.copy(pipeline = Some(x)))
+              .text("Path to pipeline YAML file")
+          ),
+        cmd("explain")
+          .action((_, c) => c.copy(command = "explain"))
+          .text("Show resolved DAG and execution plan")
+          .children(
+            arg[String]("<pipeline>")
+              .action((x, c) => c.copy(pipeline = Some(x)))
+              .text("Path to pipeline YAML file")
+          ),
+        cmd("inspect")
+          .action((_, c) => c.copy(command = "inspect"))
+          .text("Show details of a source or transform")
+          .children(
+            arg[String]("<pipeline>")
+              .action((x, c) => c.copy(pipeline = Some(x)))
+              .text("Path to pipeline YAML file"),
+            arg[String]("<id>")
+              .action((x, c) => c.copy(inspectId = Some(x)))
+              .text("ID of the source or transform to inspect")
           ),
         cmd("apply")
           .action((_, c) => c.copy(command = "apply"))
@@ -61,15 +91,14 @@ object WeaverCLI {
               errors.foreach(e => System.err.println(s"ERROR: $e"))
               sys.exit(1)
             }
+          case "plan" =>
+            PlanCommand.run(config.pipeline.get)
+          case "explain" =>
+            ExplainCommand.run(config.pipeline.get)
+          case "inspect" =>
+            InspectCommand.run(config.pipeline.get, config.inspectId.get)
           case "apply" =>
-            implicit val spark: SparkSession = SparkSession.builder()
-              .appName("DataWeaver")
-              .getOrCreate()
-            try {
-              ApplyCommand.run(config.pipeline.get)
-            } finally {
-              spark.stop()
-            }
+            ApplyCommand.run(config.pipeline.get, config.env)
           case _ =>
             println("Unknown command. Use --help for usage.")
         }
