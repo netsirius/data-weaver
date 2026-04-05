@@ -1,69 +1,81 @@
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.2.0-SNAPSHOT"
+ThisBuild / scalaVersion := "2.13.14"
+ThisBuild / organization := "com.dataweaver"
 
-ThisBuild / scalaVersion := "2.12.17"
+val sparkVersion = "4.0.2"
+
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+    "org.scalactic" %% "scalactic" % "3.2.19" % Test,
+    "org.mockito"   %% "mockito-scala" % "1.17.37" % Test
+  )
+)
 
 lazy val root = (project in file("."))
+  .aggregate(core, connectors, transformations, cli)
   .settings(
     name := "data-weaver",
-    version := "0.1.0-SNAPSHOT"
+    publish / skip := true
   )
 
-// Spark version compatible con tu versión de Scala
-val sparkVersion = "3.5.0"
+lazy val core = (project in file("core"))
+  .settings(
+    commonSettings,
+    name := "data-weaver-core",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+      "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided",
+      "com.typesafe"      % "config"     % "1.4.3",
+      "io.circe"         %% "circe-core"    % "0.14.10",
+      "io.circe"         %% "circe-yaml"    % "0.15.1",
+      "io.circe"         %% "circe-generic" % "0.14.10"
+    )
+  )
 
-libraryDependencies ++= Seq(
-  // Apache Spark
-  "org.apache.spark" %% "spark-core" % sparkVersion % "compile",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "compile",
-  "org.apache.spark" %% "spark-streaming" % sparkVersion % "compile",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "compile",
-  "com.typesafe" % "config" % "1.4.2",
+lazy val connectors = (project in file("connectors"))
+  .dependsOn(core)
+  .settings(
+    commonSettings,
+    name := "data-weaver-connectors",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+      "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided",
+      "com.mysql"         % "mysql-connector-j" % "9.1.0",
+      "org.json4s"       %% "json4s-jackson" % "4.0.7"
+    )
+  )
 
-  // Cli
-  "com.github.scopt" %% "scopt" % "4.1.0",
+lazy val transformations = (project in file("transformations"))
+  .dependsOn(core)
+  .settings(
+    commonSettings,
+    name := "data-weaver-transformations",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+      "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided"
+    )
+  )
 
-  // logging
-  "org.slf4j" % "slf4j-api" % "1.7.36",
-
-  // Json
-
-  "org.json4s" %% "json4s-ast" % "3.6.7",
-  "org.json4s" %% "json4s-native" % "3.6.7",
-  "org.json4s" %% "json4s-jackson" % "3.6.7",
-  "org.json4s" %% "json4s-scalap" % "3.6.7",
-
-  // YAML
-  "io.circe" %% "circe-core" % "0.14.5",
-  "io.circe" %% "circe-yaml" % "0.15.1",
-  "io.circe" %% "circe-generic" % "0.14.5",
-
-  // Database drivers
-  "mysql" % "mysql-connector-java" % "8.0.33",
-
-  // Testing
-  "org.scalatest" %% "scalatest" % "3.2.17" % Test,
-  "org.scalactic" %% "scalactic" % "3.2.17" % Test,
-  "org.mockito" %% "mockito-scala" % "1.17.29" % Test
-)
-
-// Añadir repositorios adicionales si es necesario
-resolvers ++= Seq(
-  "Spark Packages Repo" at "https://dl.bintray.com/spark-packages/maven/"
-)
-
-// Merge strategy rules
-assembly / assemblyMergeStrategy := {
-  case x if Assembly.isConfigFile(x) =>
-    MergeStrategy.concat
-  case PathList(ps @ _*) if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
-    MergeStrategy.rename
-  case PathList("META-INF", _ @_*) =>
-    MergeStrategy.discard
-  case _ =>
-    MergeStrategy.first
-}
-
-// Especificar la clase principal
-Compile / mainClass := Some("com.dataweaver.cli.CommandLineInterface")
-assembly / assemblyJarName := s"${name.value}.jar"
-assembly / test := {}
+lazy val cli = (project in file("cli"))
+  .dependsOn(core, connectors, transformations)
+  .settings(
+    commonSettings,
+    name := "data-weaver-cli",
+    libraryDependencies ++= Seq(
+      "org.apache.spark"  %% "spark-core" % sparkVersion % "compile",
+      "org.apache.spark"  %% "spark-sql"  % sparkVersion % "compile",
+      "com.github.scopt"  %% "scopt"      % "4.1.0"
+    ),
+    Compile / mainClass := Some("com.dataweaver.cli.WeaverCLI"),
+    assembly / assemblyJarName := "data-weaver.jar",
+    assembly / test := {},
+    assembly / assemblyMergeStrategy := {
+      case x if Assembly.isConfigFile(x) => MergeStrategy.concat
+      case PathList(ps @ _*) if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
+        MergeStrategy.rename
+      case PathList("META-INF", _*) => MergeStrategy.discard
+      case "module-info.class"      => MergeStrategy.discard
+      case _                        => MergeStrategy.first
+    }
+  )
