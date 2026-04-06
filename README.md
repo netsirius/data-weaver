@@ -1,88 +1,278 @@
 # Data Weaver
 
-Data Weaver is a data processing and ETL (Extract, Transform, Load) tool built on Apache Spark. It allows you to define
-data pipelines using YAML configuration files and execute them using Spark for data transformation and integration.
-
-## Table of Contents
-
-- [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-- [Usage](#usage)
-    - [Defining Data Pipelines](#defining-data-pipelines)
-    - [Running Data Pipelines](#running-data-pipelines)
-- [Configuration](#configuration)
-- [Contributing](#contributing)
-- [License](#license)
-
-## Getting Started
-
-### Prerequisites
-
-Before using Data Weaver, make sure you have the following prerequisites installed:
-
-- Apache Spark 3.5.0: [Download and install Apache Spark](https://spark.apache.org/downloads.html).
-- Java 11 or later: Data Weaver requires Java to run.
-
-### Installation
-
-1. Clone the Data Weaver repository to your local machine:
-
-   ```bash
-   git clone https://github.com/yourusername/data-weaver.git
-
-## Usage
-
-### Defining Data Pipelines
-
-Data pipelines are defined using YAML configuration files. You can create your pipeline configurations and place them in
-a directory of your choice. Each configuration should define data sources, transformations, and sinks.
-
-Here's an example of a simple pipeline configuration:
-
-```yaml
-name: ExamplePipeline
-tag: example
-dataSources:
-  - id: testSource
-    type: MySQL
-    query: >
-      SELECT name
-      FROM test_table
-    config:
-      readMode: ReadOnce # ReadOnce, Incremental..
-      connection: testConnection # Connection name related to the defined connections inside application.conf
-transformations:
-  - id: transform1
-    type: SQLTransformation
-    sources:
-      - source1 # Source name related to the defined data sources inside pipeline.yaml
-    query: >
-      SELECT name as id
-      FROM testSource
-      WHERE column1 = 'value'
-  - id: transform2
-    type: ScalaTransformation
-    sources:
-      - transform1 # Source name related to the defined data sources or transformations inside pipeline.yaml
-    action: dropDuplicates
-sinks:
-  - id: sink1
-    type: BigQuery
-    config:
-      saveMode: Append # Append, Overwrite, Merge...
-      profile: testProfile # Profile name related to the defined profiles inside application.conf
-```
-
-### Running Data Pipelines
-
-To run data pipelines, you can use the Data Weaver command-line interface (CLI). Here's how to execute a pipeline:
+**Declarative data pipelines on Apache Spark.** Define ETL, RAG, and LLM-powered pipelines in YAML. Validate, plan, and execute — locally or on any Spark cluster.
 
 ```bash
-weaver run --pipelines /path/to/pipelines/folder --tag 1d
+weaver init my-project && cd my-project
+weaver validate pipelines/example_pipeline.yaml
+weaver apply pipelines/example_pipeline.yaml
+```
+
+## Why Data Weaver?
+
+- **Pure YAML** — No Scala/Python code required. One file defines sources, transforms, quality checks, and sinks
+- **5-minute start** — `weaver init` scaffolds a working project. No Spark installation needed for local dev
+- **14 connectors** — PostgreSQL, MySQL, Kafka, MongoDB, REST APIs, BigQuery, DeltaLake, Elasticsearch, files (CSV/Parquet/JSON)
+- **LLM transforms** — Use Claude, OpenAI, or local Ollama models as transformation steps
+- **RAG pipelines** — Chunking, embedding, and graph extraction in the same YAML
+- **AI generation** — `weaver generate "description"` creates pipelines from natural language
+- **Terraform workflow** — `validate` → `plan` → `apply` with human-readable error messages
+- **Parallel execution** — DAG resolver automatically parallelizes independent transforms
+- **Data quality** — Inline checks with `abort`, `warn`, or `skip` on failure
+
+## Installation
+
+**Requirements:** Java 17+
+
+```bash
+# One-line install
+curl -fsSL https://raw.githubusercontent.com/netsirius/data-weaver/main/scripts/install.sh | bash
+
+# Or with SDKMAN
+sdk install java 17.0.13-zulu
+```
+
+**From source:**
+```bash
+git clone https://github.com/netsirius/data-weaver.git
+cd data-weaver
+sbt "cli/assembly"
+```
+
+## Quick Start
+
+```bash
+# Create a new project
+weaver init my-project
+cd my-project
+
+# Check everything is correct
+weaver doctor pipelines/example_pipeline.yaml
+
+# See execution plan
+weaver plan pipelines/example_pipeline.yaml
+
+# Run the pipeline
+weaver apply pipelines/example_pipeline.yaml
+```
+
+## Pipeline Example
+
+```yaml
+name: CustomerETL
+engine: auto
+tag: daily
+
+dataSources:
+  - id: customers
+    type: PostgreSQL
+    connection: pg-prod
+    config:
+      query: "SELECT * FROM customers WHERE updated_at > '${date.yesterday}'"
+
+  - id: orders
+    type: File
+    config:
+      path: s3://data-lake/orders/
+      format: parquet
+
+transformations:
+  - id: enriched
+    type: SQL
+    sources: [customers, orders]
+    query: >
+      SELECT c.*, COUNT(o.id) as order_count
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id
+      GROUP BY c.id
+
+  - id: validated
+    type: DataQuality
+    sources: [enriched]
+    checks:
+      - row_count > 0
+      - missing_count(email) = 0
+      - duplicate_count(id) = 0
+    onFail: abort
+
+sinks:
+  - id: warehouse
+    type: DeltaLake
+    source: validated
+    config:
+      path: s3://warehouse/customers
+      saveMode: merge
+      mergeKey: id
+
+profiles:
+  dev:
+    engine: local
+  prod:
+    engine: spark
+
+tests:
+  - name: "has data"
+    assert: warehouse.row_count > 0
+```
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `weaver init <project>` | Scaffold a new project with example pipeline |
+| `weaver init --interactive` | Step-by-step pipeline wizard (no LLM) |
+| `weaver generate "<description>"` | AI: natural language to YAML pipeline |
+| `weaver doctor <pipeline>` | Full system diagnostic |
+| `weaver validate <pipeline>` | Validate YAML, schema, and DAG |
+| `weaver plan <pipeline>` | Dry-run: show what will execute |
+| `weaver explain <pipeline>` | Visualize the execution DAG |
+| `weaver inspect <pipeline> <id>` | Show source or transform details |
+| `weaver test <pipeline>` | Run inline tests |
+| `weaver test --coverage` | Show test coverage report |
+| `weaver apply <pipeline>` | Execute the pipeline |
+| `weaver apply --env prod` | Execute with environment profile |
+
+## Connectors
+
+### Sources
+| Type | Description |
+|------|-------------|
+| `PostgreSQL` | JDBC reader with health check |
+| `MySQL` | JDBC reader (MySQL + SQL Server) |
+| `File` | CSV, Parquet, JSON, ORC with format auto-detection |
+| `Kafka` | Batch + streaming modes |
+| `MongoDB` | Collection reads with aggregation pipeline |
+| `REST` | Generic API with pagination and auth (bearer, API key) |
+| `BigQuery` | Table reads and SQL queries |
+| `Test` | JSON file reader for testing |
+
+### Sinks
+| Type | Description |
+|------|-------------|
+| `BigQuery` | Write to BigQuery tables |
+| `DeltaLake` | Overwrite, Append, and Merge (upsert) |
+| `File` | CSV, Parquet, JSON, ORC with partitioning |
+| `Kafka` | Batch + streaming with checkpointing |
+| `Elasticsearch` | Spark ES connector + REST bulk fallback |
+| `Test` | JSON file writer for testing |
+
+## Transforms
+
+| Type | Description |
+|------|-------------|
+| `SQL` | Standard SQL queries on registered temp views |
+| `DataQuality` | Quality gate: row_count, missing_count, duplicate_count |
+| `LLMTransform` | Generic LLM-as-transformation with prompt templating |
+| `Chunking` | Split documents (fixed, sentence, recursive strategies) |
+| `Embedding` | Vector embeddings via OpenAI, Vertex AI, Cohere |
+| `GraphExtraction` | Entity/relationship extraction using LLM |
+
+### LLM Provider Support
+
+| Provider | Config | API Key |
+|----------|--------|---------|
+| Claude | `provider: claude` | `ANTHROPIC_API_KEY` |
+| OpenAI | `provider: openai` | `OPENAI_API_KEY` |
+| Ollama (local) | `provider: local` | Not required |
+| Custom | `baseUrl: http://...` | Optional |
+
+## Deployment
+
+```bash
+# Local (default — no Spark installation needed)
+weaver apply pipeline.yaml
+
+# Docker
+docker run data-weaver:latest apply pipeline.yaml --env prod
+
+# Kubernetes
+weaver apply --submit k8s --master k8s://host:6443 --image data-weaver:latest
+
+# AWS EMR
+weaver apply --submit emr --cluster-id j-XXXXX --env prod
+
+# GCP Dataproc
+weaver apply --submit dataproc --cluster my-cluster --region us-central1
+```
+
+### Airflow
+
+```python
+from data_weaver_airflow import DataWeaverOperator
+
+etl_task = DataWeaverOperator(
+    task_id="customer_etl",
+    pipeline="pipelines/customer_etl.yaml",
+    env="prod",
+    dag=dag,
+)
 ```
 
 ## Configuration
 
-You can configure Data Weaver by editing the flow.conf file located in the config directory. This configuration file
-contains various settings for Data Weaver, including Spark configuration.
+### Connections (`connections.yaml`)
+
+```yaml
+connections:
+  pg-prod:
+    type: PostgreSQL
+    host: ${env.DB_HOST}
+    port: ${env.DB_PORT}
+    database: ${env.DB_NAME}
+    user: ${env.DB_USER}
+    password: ${env.DB_PASSWORD}
+```
+
+Credentials resolve from: environment variables → `.env` file (gitignored) → Vault/Secrets Manager.
+
+### Variable Injection
+
+| Variable | Example | Result |
+|----------|---------|--------|
+| `${env.VAR}` | `${env.DB_HOST}` | Environment variable value |
+| `${date.today}` | — | `2026-04-06` |
+| `${date.yesterday}` | — | `2026-04-05` |
+| `${date.offset(-7)}` | — | `2026-03-30` |
+| `${date.format('yyyy/MM')}` | — | `2026/04` |
+
+## Building Custom Connectors
+
+See the [Connector SDK](docs/connector-sdk/CONNECTOR_SDK.md) for a complete guide.
+
+```scala
+class MyConnector extends SourceConnector {
+  def connectorType = "MyDB"
+  def read(config: Map[String, String])(implicit spark: SparkSession): DataFrame = {
+    spark.read.format("jdbc").option("url", config("url")).load()
+  }
+}
+```
+
+Package as JAR, drop in `plugins/`, and it's automatically discovered via ServiceLoader.
+
+## Architecture
+
+```
+data-weaver/
+├── core/             Plugin traits, DAG resolver, config, executor
+├── connectors/       Source and sink implementations
+├── transformations/  SQL, DataQuality, LLM, RAG transforms
+├── cli/              CLI commands, AI generation, wizard
+└── airflow-operator/ Python Airflow operator
+```
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| Language | Scala 2.13.14 |
+| Build | SBT 1.9.7 |
+| Engine | Apache Spark 4.0.2 |
+| Local engine | DuckDB (embedded) |
+| YAML | circe-yaml |
+| CLI | scopt |
+| Java | JDK 17+ |
+
+## License
+
+Apache License 2.0
