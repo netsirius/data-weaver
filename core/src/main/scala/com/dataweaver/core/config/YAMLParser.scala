@@ -8,7 +8,12 @@ import scala.util.Try
 
 object YAMLParser {
 
-  // Custom decoders that handle missing optional fields with defaults
+  implicit val inlineTestConfigDecoder: Decoder[InlineTestConfig] = (c: HCursor) =>
+    for {
+      name <- c.get[String]("name")
+      assertExpr <- c.get[String]("assert")
+    } yield InlineTestConfig(name, assertExpr)
+
   implicit val dataSourceConfigDecoder: Decoder[DataSourceConfig] = (c: HCursor) =>
     for {
       id <- c.get[String]("id")
@@ -26,7 +31,9 @@ object YAMLParser {
       query <- c.get[Option[String]]("query")
       action <- c.get[Option[String]]("action")
       config <- c.getOrElse[Map[String, String]]("config")(Map.empty)
-    } yield TransformationConfig(id, tpe, sources, query, action, config)
+      checks <- c.getOrElse[List[String]]("checks")(List.empty)
+      onFail <- c.getOrElse[String]("onFail")("abort")
+    } yield TransformationConfig(id, tpe, sources, query, action, config, checks, onFail)
 
   implicit val sinkConfigDecoder: Decoder[SinkConfig] = (c: HCursor) =>
     for {
@@ -46,7 +53,8 @@ object YAMLParser {
       transformations <- c.getOrElse[List[TransformationConfig]]("transformations")(List.empty)
       sinks <- c.getOrElse[List[SinkConfig]]("sinks")(List.empty)
       profiles <- c.get[Option[Map[String, Map[String, String]]]]("profiles")
-    } yield PipelineConfig(name, tag, engine, dataSources, transformations, sinks, profiles)
+      tests <- c.getOrElse[List[InlineTestConfig]]("tests")(List.empty)
+    } yield PipelineConfig(name, tag, engine, dataSources, transformations, sinks, profiles, tests)
 
   def parseFile(path: String): Either[String, PipelineConfig] = {
     Try {
