@@ -102,6 +102,12 @@ JSON array:"""
         ("https://api.anthropic.com/v1/messages",
           Map("x-api-key" -> apiKey, "anthropic-version" -> "2023-06-01", "Content-Type" -> "application/json"),
           s"""{"model":"$model","max_tokens":4096,"messages":[{"role":"user","content":"$escapedPrompt"}]}""")
+      case "gemini" | "vertex-ai" =>
+        val geminiUrl = baseUrl.getOrElse(
+          s"https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
+        (geminiUrl,
+          Map("Content-Type" -> "application/json"),
+          s"""{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"maxOutputTokens":4096}}""")
       case _ => // openai-compatible
         val apiUrl = baseUrl.getOrElse("https://api.openai.com/v1/chat/completions")
         (apiUrl,
@@ -135,16 +141,18 @@ JSON array:"""
   }
 
   private def defaultModel(provider: String): String = provider match {
-    case "claude" => "claude-sonnet-4-20250514"
-    case "openai" => "gpt-4o-mini"
-    case "local"  => "llama3"
-    case _        => "gpt-4o-mini"
+    case "claude"              => "claude-sonnet-4-20250514"
+    case "openai"              => "gpt-4o-mini"
+    case "gemini" | "vertex-ai" => "gemini-2.0-flash"
+    case "local"               => "llama3"
+    case _                     => "gpt-4o-mini"
   }
 
   private def resolveApiKey(provider: String): String = provider match {
-    case "claude" => sys.env.getOrElse("ANTHROPIC_API_KEY", "")
-    case "openai" => sys.env.getOrElse("OPENAI_API_KEY", "")
-    case "local"  => "" // no key needed
-    case _        => ""
+    case "claude"              => sys.env.getOrElse("ANTHROPIC_API_KEY", "")
+    case "openai"              => sys.env.getOrElse("OPENAI_API_KEY", "")
+    case "gemini" | "vertex-ai" => sys.env.getOrElse("GOOGLE_API_KEY", sys.env.getOrElse("GEMINI_API_KEY", ""))
+    case "local"               => ""
+    case _                     => ""
   }
 }

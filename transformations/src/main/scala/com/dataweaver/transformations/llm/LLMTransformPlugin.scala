@@ -133,8 +133,15 @@ class LLMTransformPlugin extends TransformPlugin {
           Map("x-api-key" -> apiKey, "anthropic-version" -> "2023-06-01", "Content-Type" -> "application/json"),
           s"""{"model":"$model","max_tokens":4096,"messages":[{"role":"user","content":"$escapedPrompt"}]}"""
         )
+      case "gemini" | "vertex-ai" =>
+        // Google AI Studio (default) or Vertex AI via baseUrl
+        val geminiUrl = s"https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+        (
+          geminiUrl,
+          Map("Content-Type" -> "application/json"),
+          s"""{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"maxOutputTokens":4096}}"""
+        )
       case "local" =>
-        // Ollama-compatible API (OpenAI-compatible endpoint)
         (
           "http://localhost:11434/v1/chat/completions",
           Map("Content-Type" -> "application/json"),
@@ -142,7 +149,7 @@ class LLMTransformPlugin extends TransformPlugin {
         )
       case _ => // openai and any other OpenAI-compatible provider
         val apiUrl = if (provider == "openai") "https://api.openai.com/v1/chat/completions"
-                     else s"https://api.$provider.com/v1/chat/completions" // extensible
+                     else s"https://api.$provider.com/v1/chat/completions"
         (
           apiUrl,
           Map("Authorization" -> s"Bearer $apiKey", "Content-Type" -> "application/json"),
@@ -160,15 +167,28 @@ class LLMTransformPlugin extends TransformPlugin {
       throw new RuntimeException(s"LLM API error (${response.statusCode()}): ${response.body().take(500)}")
     }
 
-    // Extract text from response
-    val textPattern = """"text"\s*:\s*"((?:[^"\\]|\\.)*)"""".r
-    val contentPattern = """"content"\s*:\s*"((?:[^"\\]|\\.)*)"""".r
+    extractResponseText(response.body(), provider)
+  }
 
-    val pattern = if (provider == "claude") textPattern else contentPattern
-    pattern.findFirstMatchIn(response.body()) match {
-      case Some(m) => m.group(1).replace("\\n", "\n").replace("\\\"", "\"")
-      case None    => throw new RuntimeException(s"Cannot parse LLM response")
+  /** Extract generated text from LLM API response based on provider format. */
+  private def extractResponseText(responseBody: String, provider: String): String = {
+    val result = provider match {
+      case "claude" =>
+        val pattern = """"text"\s*:\s*"((?:[^"\\]|\\.)*)"""".r
+        pattern.findFirstMatchIn(responseBody).map(_.group(1))
+
+      case "gemini" | "vertex-ai" =>
+        // Gemini response: candidates[0].content.parts[0].text
+        val pattern = """"text"\s*:\s*"((?:[^"\\]|\\.)*)"""".r
+        pattern.findFirstMatchIn(responseBody).map(_.group(1))
+
+      case _ => // openai, local, and compatible
+        val pattern = """"content"\s*:\s*"((?:[^"\\]|\\.)*)"""".r
+        pattern.findFirstMatchIn(responseBody).map(_.group(1))
     }
+
+    result.map(_.replace("\\n", "\n").replace("\\\"", "\""))
+      .getOrElse(throw new RuntimeException(s"Cannot parse LLM response"))
   }
 
   private def parseOutputSchema(schemaStr: String): List[(String, DataType)] = {
@@ -226,10 +246,11 @@ class LLMTransformPlugin extends TransformPlugin {
   private def resolveApiKey(config: Map[String, String], provider: String): String = {
     config.getOrElse("apiKey", {
       provider match {
-        case "claude" => sys.env.getOrElse("ANTHROPIC_API_KEY", "")
-        case "openai" => sys.env.getOrElse("OPENAI_API_KEY", "")
-        case "local"  => "" // Ollama doesn't need an API key
-        case _        => ""
+        case "claude"              => sys.env.getOrElse("ANTHROPIC_API_KEY", "")
+        case "openai"              => sys.env.getOrElse("OPENAI_API_KEY", "")
+        case "gemini" | "vertex-ai" => sys.env.getOrElse("GOOGLE_API_KEY", sys.env.getOrElse("GEMINI_API_KEY", ""))
+        case "local"               => ""
+        case _                     => ""
       }
     })
   }
