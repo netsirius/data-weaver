@@ -27,9 +27,10 @@ object LLMClient {
     }
 
     config.provider match {
-      case "claude" => callClaude(prompt, config)
-      case "openai" => callOpenAI(prompt, config)
-      case other    => Left(s"Unknown AI provider '$other'. Supported: claude, openai")
+      case "claude"              => callClaude(prompt, config)
+      case "openai"              => callOpenAI(prompt, config)
+      case "gemini" | "vertex-ai" => callGemini(prompt, config)
+      case other                 => Left(s"Unknown AI provider '$other'. Supported: claude, openai, gemini")
     }
   }
 
@@ -68,6 +69,23 @@ object LLMClient {
     executeRequest(request).flatMap(extractOpenAIResponse)
   }
 
+  private def callGemini(prompt: String, config: WeaverConfig.AIConfig): Either[String, String] = {
+    val body = s"""{
+      "contents": [{"parts": [{"text": ${escapeJson(prompt)}}]}],
+      "generationConfig": {"maxOutputTokens": 4096}
+    }"""
+
+    val url = s"https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.apiKey}"
+
+    val request = HttpRequest.newBuilder()
+      .uri(URI.create(url))
+      .header("Content-Type", "application/json")
+      .POST(HttpRequest.BodyPublishers.ofString(body))
+      .build()
+
+    executeRequest(request).flatMap(extractGeminiResponse)
+  }
+
   private def executeRequest(request: HttpRequest): Either[String, String] = {
     Try(httpClient.send(request, HttpResponse.BodyHandlers.ofString())) match {
       case Success(response) if response.statusCode() >= 200 && response.statusCode() < 300 =>
@@ -95,6 +113,15 @@ object LLMClient {
     contentPattern.findFirstMatchIn(json) match {
       case Some(m) => Right(unescapeJson(m.group(1)))
       case None    => Left(s"Cannot parse OpenAI response: ${json.take(500)}")
+    }
+  }
+
+  /** Extract text from Gemini API response: candidates[0].content.parts[0].text */
+  private def extractGeminiResponse(json: String): Either[String, String] = {
+    val textPattern = """"text"\s*:\s*"((?:[^"\\]|\\.)*)"""".r
+    textPattern.findFirstMatchIn(json) match {
+      case Some(m) => Right(unescapeJson(m.group(1)))
+      case None    => Left(s"Cannot parse Gemini response: ${json.take(500)}")
     }
   }
 

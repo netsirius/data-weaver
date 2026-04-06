@@ -169,12 +169,13 @@ tests:
 
 ### LLM Provider Support
 
-| Provider | Config | API Key |
-|----------|--------|---------|
-| Claude | `provider: claude` | `ANTHROPIC_API_KEY` |
-| OpenAI | `provider: openai` | `OPENAI_API_KEY` |
-| Ollama (local) | `provider: local` | Not required |
-| Custom | `baseUrl: http://...` | Optional |
+| Provider | Config | API Key | Default Model |
+|----------|--------|---------|---------------|
+| Claude | `provider: claude` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` |
+| OpenAI | `provider: openai` | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| Gemini | `provider: gemini` | `GOOGLE_API_KEY` or `GEMINI_API_KEY` | `gemini-2.0-flash` |
+| Ollama (local) | `provider: local` | Not required | `llama3` |
+| Custom | `baseUrl: http://...` | Optional | — |
 
 ## Deployment
 

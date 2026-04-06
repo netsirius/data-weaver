@@ -71,9 +71,10 @@ object WeaverConfig {
       case _ =>
         // Fallback to standard env vars
         provider match {
-          case "claude" => sys.env.getOrElse("ANTHROPIC_API_KEY", "")
-          case "openai" => sys.env.getOrElse("OPENAI_API_KEY", "")
-          case _        => ""
+          case "claude"              => sys.env.getOrElse("ANTHROPIC_API_KEY", "")
+          case "openai"              => sys.env.getOrElse("OPENAI_API_KEY", "")
+          case "gemini" | "vertex-ai" => sys.env.getOrElse("GOOGLE_API_KEY", sys.env.getOrElse("GEMINI_API_KEY", ""))
+          case _                     => ""
         }
     }
   }
