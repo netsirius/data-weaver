@@ -15,7 +15,12 @@ object WeaverCLI {
       showCoverage: Boolean = false,
       description: Option[String] = None,
       interactive: Boolean = false,
-      projectName: Option[String] = None
+      projectName: Option[String] = None,
+      artifact: Option[String] = None,
+      listCategory: Option[String] = None,
+      scaffoldType: Option[String] = None,
+      scaffoldName: Option[String] = None,
+      connectorKind: String = "source"
   )
 
   def main(args: Array[String]): Unit = {
@@ -44,6 +49,36 @@ object WeaverCLI {
             arg[String]("<description>")
               .action((x, c) => c.copy(description = Some(x)))
               .text("Natural language description of the pipeline")
+          ),
+        cmd("scaffold")
+          .action((_, c) => c.copy(command = "scaffold"))
+          .text("Generate a connector, transform, or private registry project")
+          .children(
+            arg[String]("<type>")
+              .action((x, c) => c.copy(scaffoldType = Some(x)))
+              .text("What to scaffold: connector, transform, registry"),
+            arg[String]("<name>")
+              .action((x, c) => c.copy(scaffoldName = Some(x)))
+              .text("Project name"),
+            opt[String]("type")
+              .action((x, c) => c.copy(connectorKind = x))
+              .text("Connector kind: source (default), sink, or both")
+          ),
+        cmd("install")
+          .action((_, c) => c.copy(command = "install"))
+          .text("Install a connector plugin from Maven Central or local JAR")
+          .children(
+            arg[String]("<artifact>")
+              .action((x, c) => c.copy(artifact = Some(x)))
+              .text("Artifact: connector-kafka, groupId:artifactId:version, or /path/to.jar")
+          ),
+        cmd("list")
+          .action((_, c) => c.copy(command = "list"))
+          .text("List available connectors, transforms, or installed plugins")
+          .children(
+            arg[String]("<category>")
+              .action((x, c) => c.copy(listCategory = Some(x)))
+              .text("Category: connectors, transforms, plugins, all")
           ),
         cmd("doctor")
           .action((_, c) => c.copy(command = "doctor"))
@@ -122,6 +157,12 @@ object WeaverCLI {
           case "init" =>
             if (config.interactive) InteractiveWizard.run()
             else InitCommand.run(config.projectName.getOrElse("my-project"))
+          case "scaffold" =>
+            ScaffoldCommand.run(config.scaffoldType.get, config.scaffoldName.get, config.connectorKind)
+          case "install" =>
+            InstallCommand.run(config.artifact.get)
+          case "list" =>
+            ListCommand.run(config.listCategory.getOrElse("all"))
           case "generate" =>
             GenerateCommand.run(config.description.get)
           case "doctor" =>

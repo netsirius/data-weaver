@@ -1,0 +1,6 @@
+id,title,description,status,created_at
+1,Login not working,I cannot log in to my account since this morning. I get a 500 error.,open,2026-04-01
+2,Add dark mode,It would be great to have a dark mode option in the settings page.,open,2026-04-02
+3,How to export data?,I need to export my data to CSV but I cannot find the option anywhere.,open,2026-04-03
+4,Slow page load,The dashboard takes 30 seconds to load. This is unacceptable for a paid product.,open,2026-04-04
+5,Great new feature,Just wanted to say the new reporting feature is amazing. Keep up the good work!,closed,2026-04-05

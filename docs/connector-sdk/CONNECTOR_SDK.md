@@ -59,10 +59,30 @@ class MySinkConnector extends SinkConnector {
 
 ### 3. Register via ServiceLoader
 
-Create `src/main/resources/META-INF/services/com.dataweaver.core.plugin.SourceConnector`:
+Data Weaver discovers connectors automatically using Java's ServiceLoader mechanism. You need to create a plain text file **inside your connector project** that tells ServiceLoader which classes implement the connector interface.
+
+Create this file in your project at `src/main/resources/META-INF/services/com.dataweaver.core.plugin.SourceConnector`:
+
 ```
 com.example.connector.MySourceConnector
 ```
+
+Your project structure should look like this:
+```
+my-connector/
+├── src/
+│   └── main/
+│       ├── scala/com/example/connector/
+│       │   └── MySourceConnector.scala
+│       └── resources/META-INF/services/
+│           └── com.dataweaver.core.plugin.SourceConnector   ← text file
+└── build.sbt
+```
+
+The file name IS the interface name. The file content is the full class name of your implementation (one per line if you have multiple). When you package your project as a JAR and place it in `~/.weaver/plugins/`, Data Weaver finds and loads your connector automatically at startup.
+
+For sink connectors, create `com.dataweaver.core.plugin.SinkConnector` instead.
+For transforms, create `com.dataweaver.core.plugin.TransformPlugin`.
 
 ### 4. Package and install
 
