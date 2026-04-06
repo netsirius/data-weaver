@@ -1,0 +1,14 @@
+[
+  {
+    "title": "architecture_decisions",
+    "content": "Our platform uses a microservices architecture with PostgreSQL for transactional data and BigQuery for analytics. We chose Kafka for event streaming between services. The authentication service uses JWT tokens with a 24-hour expiry. All API endpoints require rate limiting at 100 requests per minute per user."
+  },
+  {
+    "title": "deployment_guide",
+    "content": "The application is deployed on Google Kubernetes Engine (GKE) with auto-scaling enabled. Each service runs in its own pod with resource limits of 512MB RAM and 0.5 CPU. We use Helm charts for deployment configuration. The CI/CD pipeline runs on GitHub Actions with automated testing and staging deployment before production."
+  },
+  {
+    "title": "data_pipeline_overview",
+    "content": "Data flows from the PostgreSQL operational database through Kafka topics to BigQuery for analytics. We process approximately 10 million events per day. The ETL pipeline runs every 6 hours using Data Weaver with incremental loads based on the updated_at timestamp. Quality checks validate row counts and null percentages before loading to the analytics warehouse."
+  }
+]

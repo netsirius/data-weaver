@@ -1,0 +1,54 @@
+# Tutorial 1: CSV to Parquet with quality checks
+# Reads a CSV file, filters and transforms with SQL, validates quality, writes Parquet
+#
+# Run: weaver apply docs/tutorials/01-csv-to-parquet.yaml
+
+name: CSVtoParquet
+tag: tutorial
+engine: local
+
+dataSources:
+  - id: raw_data
+    type: File
+    config:
+      path: docs/tutorials/data/sample_customers.csv
+      format: csv
+
+transformations:
+  - id: cleaned
+    type: SQL
+    sources:
+      - raw_data
+    query: >
+      SELECT
+        TRIM(name) as name,
+        LOWER(email) as email,
+        CAST(age AS INT) as age,
+        city
+      FROM raw_data
+      WHERE name IS NOT NULL AND email IS NOT NULL
+
+  - id: quality
+    type: DataQuality
+    sources:
+      - cleaned
+    checks:
+      - row_count > 0
+      - missing_count(email) = 0
+      - duplicate_count(email) = 0
+    onFail: warn
+
+sinks:
+  - id: output
+    type: File
+    source: quality
+    config:
+      path: output/customers_clean
+      format: parquet
+      saveMode: Overwrite
+
+tests:
+  - name: "has data"
+    assert: output.row_count > 0
+  - name: "no missing emails"
+    assert: output.missing_count(email) = 0

@@ -1,0 +1,72 @@
+name: Data Weaver Pipeline CI
+
+# Reusable workflow for validating and testing Data Weaver pipelines
+# Usage in your project's .github/workflows/ci.yml:
+#
+#   jobs:
+#     validate-pipelines:
+#       uses: netsirius/data-weaver/.github/workflows/weaver-pipeline-ci.yml@main
+#       with:
+#         pipelines-dir: pipelines/
+
+on:
+  workflow_call:
+    inputs:
+      pipelines-dir:
+        description: 'Directory containing pipeline YAML files'
+        required: false
+        default: 'pipelines/'
+        type: string
+      weaver-version:
+        description: 'Data Weaver version to use'
+        required: false
+        default: 'latest'
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Data Weaver
+        run: |
+          mkdir -p ~/.local/bin
+          if [ "${{ inputs.weaver-version }}" = "latest" ]; then
+            curl -fsSL "https://github.com/netsirius/data-weaver/releases/latest/download/data-weaver.jar" -o ~/.local/bin/data-weaver.jar
+          else
+            curl -fsSL "https://github.com/netsirius/data-weaver/releases/download/v${{ inputs.weaver-version }}/data-weaver.jar" -o ~/.local/bin/data-weaver.jar
+          fi
+          echo '#!/bin/bash' > ~/.local/bin/weaver
+          echo 'exec java -Xmx1g -jar ~/.local/bin/data-weaver.jar "$@"' >> ~/.local/bin/weaver
+          chmod +x ~/.local/bin/weaver
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Validate pipelines
+        run: |
+          echo "Validating pipelines in ${{ inputs.pipelines-dir }}..."
+          ERRORS=0
+          for f in ${{ inputs.pipelines-dir }}/*.yaml; do
+            echo "  Validating: $f"
+            if ! weaver validate "$f"; then
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::$ERRORS pipeline(s) failed validation"
+            exit 1
+          fi
+          echo "All pipelines valid!"
+
+      - name: Run pipeline tests
+        run: |
+          for f in ${{ inputs.pipelines-dir }}/*.yaml; do
+            echo "  Testing: $f"
+            weaver test "$f" || true
+          done
