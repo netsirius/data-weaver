@@ -44,8 +44,7 @@ lazy val connectors = (project in file("connectors"))
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided",
       "com.mysql"         % "mysql-connector-j" % "9.1.0",
       "org.json4s"       %% "json4s-jackson" % "4.0.7",
-      "org.postgresql"    % "postgresql" % "42.7.4",
-      "io.delta"         %% "delta-spark" % "4.0.0" % "provided"
+      "org.postgresql"    % "postgresql" % "42.7.4"
     )
   )
 
