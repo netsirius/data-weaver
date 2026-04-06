@@ -12,7 +12,9 @@ object WeaverCLI {
       command: String = "",
       pipeline: Option[String] = None,
       env: Option[String] = None,
-      inspectId: Option[String] = None
+      inspectId: Option[String] = None,
+      autoGenerate: Boolean = false,
+      showCoverage: Boolean = false
   )
 
   def main(args: Array[String]): Unit = {
@@ -65,6 +67,20 @@ object WeaverCLI {
               .action((x, c) => c.copy(inspectId = Some(x)))
               .text("ID of the source or transform to inspect")
           ),
+        cmd("test")
+          .action((_, c) => c.copy(command = "test"))
+          .text("Run tests defined in pipeline YAML")
+          .children(
+            arg[String]("<pipeline>")
+              .action((x, c) => c.copy(pipeline = Some(x)))
+              .text("Path to pipeline YAML file"),
+            opt[Unit]("auto-generate")
+              .action((_, c) => c.copy(autoGenerate = true))
+              .text("Auto-generate tests from schema inference"),
+            opt[Unit]("coverage")
+              .action((_, c) => c.copy(showCoverage = true))
+              .text("Show test coverage report")
+          ),
         cmd("apply")
           .action((_, c) => c.copy(command = "apply"))
           .text("Execute a pipeline")
@@ -91,6 +107,8 @@ object WeaverCLI {
               errors.foreach(e => System.err.println(s"ERROR: $e"))
               sys.exit(1)
             }
+          case "test" =>
+            TestCommand.run(config.pipeline.get, config.autoGenerate, config.showCoverage)
           case "plan" =>
             PlanCommand.run(config.pipeline.get)
           case "explain" =>

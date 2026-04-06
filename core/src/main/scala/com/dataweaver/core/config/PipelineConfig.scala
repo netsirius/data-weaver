@@ -7,7 +7,8 @@ case class PipelineConfig(
     dataSources: List[DataSourceConfig] = List.empty,
     transformations: List[TransformationConfig] = List.empty,
     sinks: List[SinkConfig] = List.empty,
-    profiles: Option[Map[String, Map[String, String]]] = None
+    profiles: Option[Map[String, Map[String, String]]] = None,
+    tests: List[InlineTestConfig] = List.empty
 )
 
 case class DataSourceConfig(
@@ -24,7 +25,9 @@ case class TransformationConfig(
     sources: List[String] = List.empty,
     query: Option[String] = None,
     action: Option[String] = None,
-    config: Map[String, String] = Map.empty
+    config: Map[String, String] = Map.empty,
+    checks: List[String] = List.empty,
+    onFail: String = "abort"
 )
 
 case class SinkConfig(
@@ -33,6 +36,26 @@ case class SinkConfig(
     source: Option[String] = None,
     connection: Option[String] = None,
     config: Map[String, String] = Map.empty
+)
+
+/** Inline test definition within pipeline YAML. */
+case class InlineTestConfig(
+    name: String,
+    assert: String
+)
+
+/** External test definition from .test.yaml files. */
+case class ExternalTestConfig(
+    name: String,
+    transform: String,
+    mock_sources: Map[String, List[Map[String, Any]]] = Map.empty,
+    expect: TestExpectation = TestExpectation()
+)
+
+case class TestExpectation(
+    schema: List[Map[String, String]] = List.empty,
+    row_count: Option[Int] = None,
+    values: List[Map[String, Any]] = List.empty
 )
 
 sealed trait ExecutionMode
