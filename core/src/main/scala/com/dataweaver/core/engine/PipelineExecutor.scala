@@ -39,7 +39,8 @@ object PipelineExecutor {
                 s"Unknown source type '${srcConfig.`type`}'. " +
                   s"Available: ${PluginRegistry.availableSources.mkString(", ")}"
               ))
-            val df = connector.read(srcConfig.config)
+            val enrichedConfig = srcConfig.config ++ Map("id" -> srcConfig.id, "query" -> srcConfig.query).filter(_._2.nonEmpty)
+            val df = connector.read(enrichedConfig)
             (srcConfig.id, df)
           }
 
