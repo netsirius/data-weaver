@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Data Weaver Pipeline",
+  "description": "Declarative data pipeline definition for Data Weaver",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique pipeline name"
+    },
+    "tag": {
+      "type": "string",
+      "description": "Tag for filtering pipelines (e.g., daily, weekly)",
+      "default": ""
+    },
+    "engine": {
+      "type": "string",
+      "enum": ["auto", "spark", "local"],
+      "default": "auto",
+      "description": "Execution engine: auto (select based on data size), spark (distributed), local (DuckDB embedded)"
+    },
+    "dataSources": {
+      "type": "array",
+      "description": "Data sources to read from",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier, referenced by transformations"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["PostgreSQL", "MySQL", "File", "Test"],
+            "description": "Source connector type"
+          },
+          "connection": {
+            "type": "string",
+            "description": "Named connection from connections.yaml"
+          },
+          "query": {
+            "type": "string",
+            "description": "SQL query or file path"
+          },
+          "config": {
+            "type": "object",
+            "description": "Connector-specific configuration",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    "transformations": {
+      "type": "array",
+      "description": "Data transformations applied in DAG order",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier, can be referenced by sinks or other transforms"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["SQL", "DataQuality", "LLMTransform", "Chunking", "Embedding", "GraphExtraction"],
+            "description": "Transformation type"
+          },
+          "sources": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "IDs of data sources or transforms this reads from"
+          },
+          "query": {
+            "type": "string",
+            "description": "SQL query (for SQL type)"
+          },
+          "action": {
+            "type": "string",
+            "description": "Action name (for custom transforms)"
+          },
+          "checks": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Data quality checks (for DataQuality type): row_count > 0, missing_count(col) = 0, duplicate_count(col) = 0"
+          },
+          "onFail": {
+            "type": "string",
+            "enum": ["abort", "warn", "skip"],
+            "default": "abort",
+            "description": "Behavior when quality checks fail"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    "sinks": {
+      "type": "array",
+      "description": "Output destinations",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["BigQuery", "DeltaLake", "File", "Test"],
+            "description": "Sink connector type"
+          },
+          "source": {
+            "type": "string",
+            "description": "ID of the transform whose output this sink receives (REQUIRED when transforms exist)"
+          },
+          "connection": {
+            "type": "string",
+            "description": "Named connection from connections.yaml"
+          },
+          "config": {
+            "type": "object",
+            "description": "Connector-specific configuration (saveMode, path, etc.)",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    "profiles": {
+      "type": "object",
+      "description": "Environment-specific overrides (dev, prod)",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "description": "Inline test assertions",
+      "items": {
+        "type": "object",
+        "required": ["name", "assert"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Test name"
+          },
+          "assert": {
+            "type": "string",
+            "description": "Assertion expression: target.row_count > 0, sinks.X.missing_count(col) = 0"
+          }
+        }
+      }
+    }
+  }
+}
