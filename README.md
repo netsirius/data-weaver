@@ -270,6 +270,7 @@ Ready-to-run example pipelines in [`docs/tutorials/`](docs/tutorials/):
 | [03 — RAG Pipeline](docs/tutorials/03-rag-pipeline.yaml) | Chunk documents for vector search | Chunking, RAG preparation |
 | [04 — LLM Classification](docs/tutorials/04-llm-classification.yaml) | Classify tickets with Gemini/Ollama | LLMTransform, local models |
 | [05 — Production ETL](docs/tutorials/05-production-etl.yaml) | Full pipeline: PostgreSQL → DeltaLake | Connections, profiles, merge |
+| [06 — Web Scraping + LLM](docs/tutorials/06-web-scraping-llm.yaml) | Extract supermarket products from HTML with LLM | REST, LLMTransform, SQL |
 
 ```bash
 # Run a tutorial

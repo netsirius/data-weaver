@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://example-supermarket.com/dairy",
+    "html": "<div class='product-card'><h3 class='product-title'>Leche Entera Hacendado</h3><span class='brand'>Hacendado</span><div class='price'>0.89 &euro;</div><span class='unit-price'>0.89 &euro;/L</span><span class='weight'>1L</span><span class='category-tag'>Lacteos</span></div><div class='product-card'><h3 class='product-title'>Yogur Natural Danone Pack 4</h3><span class='brand'>Danone</span><div class='price'>1.65 &euro;</div><span class='unit-price'>3.30 &euro;/kg</span><span class='weight'>4x125g</span><span class='category-tag'>Lacteos</span></div>"
+  },
+  {
+    "url": "https://example-supermarket.com/beverages",
+    "html": "<article data-product-id='8842'><div class='item-name'>Coca-Cola Original 2L</div><p class='manufacturer'>Coca-Cola</p><strong class='current-price'>1.95&euro;</strong><em class='price-per-unit'>0.98&euro;/L</em><span class='size'>2L</span></article><article data-product-id='8843'><div class='item-name'>Agua Mineral Bezoya Pack 6</div><p class='manufacturer'>Bezoya</p><strong class='current-price'>2.40&euro;</strong><em class='price-per-unit'>0.27&euro;/L</em><span class='size'>6x1.5L</span></article>"
+  },
+  {
+    "url": "https://example-supermarket.com/snacks",
+    "html": "<li class='shelf-item'><img src='chips.jpg'/><div class='details'><span class='name'>Patatas Fritas Lay's Clasicas</span><span class='maker'>Lay's</span><b class='tag-price'>1.79 EUR</b><small>11.93 EUR/kg</small><span>150g</span></div></li><li class='shelf-item'><img src='nuts.jpg'/><div class='details'><span class='name'>Almendras Tostadas Borges</span><span class='maker'>Borges</span><b class='tag-price'>3.25 EUR</b><small>13.00 EUR/kg</small><span>250g</span></div></li>"
+  }
+]
