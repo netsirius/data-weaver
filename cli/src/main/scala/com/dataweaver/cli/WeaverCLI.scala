@@ -15,7 +15,9 @@ object WeaverCLI {
       showCoverage: Boolean = false,
       description: Option[String] = None,
       interactive: Boolean = false,
-      projectName: Option[String] = None
+      projectName: Option[String] = None,
+      artifact: Option[String] = None,
+      listCategory: Option[String] = None
   )
 
   def main(args: Array[String]): Unit = {
@@ -44,6 +46,22 @@ object WeaverCLI {
             arg[String]("<description>")
               .action((x, c) => c.copy(description = Some(x)))
               .text("Natural language description of the pipeline")
+          ),
+        cmd("install")
+          .action((_, c) => c.copy(command = "install"))
+          .text("Install a connector plugin from Maven Central or local JAR")
+          .children(
+            arg[String]("<artifact>")
+              .action((x, c) => c.copy(artifact = Some(x)))
+              .text("Artifact: connector-kafka, groupId:artifactId:version, or /path/to.jar")
+          ),
+        cmd("list")
+          .action((_, c) => c.copy(command = "list"))
+          .text("List available connectors, transforms, or installed plugins")
+          .children(
+            arg[String]("<category>")
+              .action((x, c) => c.copy(listCategory = Some(x)))
+              .text("Category: connectors, transforms, plugins, all")
           ),
         cmd("doctor")
           .action((_, c) => c.copy(command = "doctor"))
@@ -122,6 +140,10 @@ object WeaverCLI {
           case "init" =>
             if (config.interactive) InteractiveWizard.run()
             else InitCommand.run(config.projectName.getOrElse("my-project"))
+          case "install" =>
+            InstallCommand.run(config.artifact.get)
+          case "list" =>
+            ListCommand.run(config.listCategory.getOrElse("all"))
           case "generate" =>
             GenerateCommand.run(config.description.get)
           case "doctor" =>

@@ -1,0 +1,127 @@
+# Tutorial 5: Production ETL pipeline
+# Complete production-ready pipeline: PostgreSQL → transform → quality → DeltaLake
+# Demonstrates: connections, variables, profiles, quality gates, tests
+#
+# Setup:
+#   1. Copy .env.example to .env and fill in PostgreSQL credentials
+#   2. Create connections.yaml with your database connection
+#
+# Run:
+#   weaver doctor docs/tutorials/05-production-etl.yaml   # check everything
+#   weaver plan docs/tutorials/05-production-etl.yaml     # dry-run
+#   weaver apply docs/tutorials/05-production-etl.yaml --env dev   # local
+#   weaver apply docs/tutorials/05-production-etl.yaml --env prod  # cluster
+
+name: ProductionETL
+tag: daily
+engine: auto
+
+dataSources:
+  - id: customers
+    type: PostgreSQL
+    connection: pg-prod
+    config:
+      query: >
+        SELECT id, name, email, status, created_at, updated_at
+        FROM customers
+        WHERE updated_at > '${date.yesterday}'
+
+  - id: transactions
+    type: File
+    config:
+      path: ${env.DATA_LAKE_PATH}/transactions/
+      format: parquet
+
+transformations:
+  # These two run in PARALLEL (independent sources)
+  - id: active_customers
+    type: SQL
+    sources:
+      - customers
+    query: >
+      SELECT id, name, email, created_at
+      FROM customers
+      WHERE status = 'active'
+
+  - id: daily_revenue
+    type: SQL
+    sources:
+      - transactions
+    query: >
+      SELECT customer_id, SUM(amount) as total_spent, COUNT(*) as tx_count
+      FROM transactions
+      WHERE tx_date >= '${date.yesterday}'
+      GROUP BY customer_id
+
+  # This waits for both above to complete
+  - id: enriched
+    type: SQL
+    sources:
+      - active_customers
+      - daily_revenue
+    query: >
+      SELECT
+        c.id, c.name, c.email,
+        COALESCE(r.total_spent, 0) as daily_spend,
+        COALESCE(r.tx_count, 0) as daily_transactions,
+        CASE
+          WHEN r.total_spent > 1000 THEN 'high_value'
+          WHEN r.total_spent > 100 THEN 'medium_value'
+          ELSE 'standard'
+        END as segment
+      FROM active_customers c
+      LEFT JOIN daily_revenue r ON c.id = r.customer_id
+
+  # Quality gate — blocks pipeline if checks fail
+  - id: validated
+    type: DataQuality
+    sources:
+      - enriched
+    checks:
+      - row_count > 0
+      - missing_count(email) = 0
+      - duplicate_count(id) = 0
+    onFail: abort
+
+sinks:
+  - id: warehouse
+    type: DeltaLake
+    source: validated
+    config:
+      path: ${env.WAREHOUSE_PATH}/customers_daily
+      saveMode: merge
+      mergeKey: id
+
+  - id: report
+    type: File
+    source: validated
+    config:
+      path: output/daily_customer_report
+      format: json
+      saveMode: Overwrite
+      coalesce: "1"
+
+profiles:
+  dev:
+    engine: local
+    dataSources.customers.type: File
+    dataSources.customers.config.path: docs/tutorials/data/sample_customers.csv
+    dataSources.customers.config.format: csv
+    dataSources.transactions.config.path: docs/tutorials/data/sample_orders.csv
+    dataSources.transactions.config.format: csv
+    sinks.warehouse.type: File
+    sinks.warehouse.config.path: output/dev_warehouse
+    sinks.warehouse.config.format: parquet
+    sinks.warehouse.config.saveMode: Overwrite
+  prod:
+    engine: spark
+    spark.executor.memory: 4g
+    spark.executor.cores: "4"
+
+tests:
+  - name: "has enriched data"
+    assert: warehouse.row_count > 0
+  - name: "no missing emails"
+    assert: warehouse.missing_count(email) = 0
+  - name: "no duplicate customers"
+    assert: warehouse.duplicate_count(id) = 0

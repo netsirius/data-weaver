@@ -131,6 +131,10 @@ tests:
 | `weaver test --coverage` | Show test coverage report |
 | `weaver apply <pipeline>` | Execute the pipeline |
 | `weaver apply --env prod` | Execute with environment profile |
+| `weaver install <artifact>` | Install a connector plugin |
+| `weaver list connectors` | List available source and sink connectors |
+| `weaver list transforms` | List available transformation types |
+| `weaver list plugins` | List installed plugin JARs |
 
 ## Connectors
 
@@ -250,6 +254,45 @@ class MyConnector extends SourceConnector {
 ```
 
 Package as JAR, drop in `plugins/`, and it's automatically discovered via ServiceLoader.
+
+## Tutorials
+
+Ready-to-run example pipelines in [`docs/tutorials/`](docs/tutorials/):
+
+| Tutorial | Description | Concepts |
+|----------|-------------|----------|
+| [01 — CSV to Parquet](docs/tutorials/01-csv-to-parquet.yaml) | Read CSV, clean with SQL, validate, write Parquet | File I/O, SQL, DataQuality |
+| [02 — Multi-source Join](docs/tutorials/02-multi-source-join.yaml) | Join two sources with parallel transforms | Parallel DAG, aggregation |
+| [03 — RAG Pipeline](docs/tutorials/03-rag-pipeline.yaml) | Chunk documents for vector search | Chunking, RAG preparation |
+| [04 — LLM Classification](docs/tutorials/04-llm-classification.yaml) | Classify tickets with Gemini/Ollama | LLMTransform, local models |
+| [05 — Production ETL](docs/tutorials/05-production-etl.yaml) | Full pipeline: PostgreSQL → DeltaLake | Connections, profiles, merge |
+
+```bash
+# Run a tutorial
+weaver validate docs/tutorials/01-csv-to-parquet.yaml
+weaver plan docs/tutorials/01-csv-to-parquet.yaml
+weaver apply docs/tutorials/01-csv-to-parquet.yaml
+```
+
+## Plugin Registry
+
+Install connector plugins without recompiling:
+
+```bash
+# Install from Maven Central
+weaver install connector-kafka
+weaver install com.example:my-connector:1.0.0
+
+# Install local JAR
+weaver install /path/to/connector.jar
+
+# List what's available
+weaver list connectors
+weaver list transforms
+weaver list plugins
+```
+
+Plugins are loaded from `~/.weaver/plugins/` automatically. See the [Connector SDK](docs/connector-sdk/CONNECTOR_SDK.md) to build your own.
 
 ## Architecture
 

@@ -1,0 +1,69 @@
+# Tutorial 4: LLM-powered classification
+# Reads support tickets from CSV and classifies them using an LLM
+#
+# Requires: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY
+# Or use a local Ollama model (no API key needed):
+#   Change provider to "local" and model to "llama3"
+#
+# Run: weaver apply docs/tutorials/04-llm-classification.yaml
+
+name: LLMClassification
+tag: tutorial
+engine: local
+
+dataSources:
+  - id: tickets
+    type: File
+    config:
+      path: docs/tutorials/data/sample_tickets.csv
+      format: csv
+
+transformations:
+  - id: classified
+    type: LLMTransform
+    sources:
+      - tickets
+    config:
+      provider: gemini
+      model: gemini-2.0-flash
+      prompt: |
+        Classify this support ticket:
+        Title: {title}
+        Description: {description}
+
+        Return JSON with:
+        - category: bug, feature_request, question, or complaint
+        - priority: low, medium, or high
+        - sentiment: positive, neutral, or negative
+      inputColumns: title,description
+      outputSchema: category:string|priority:string|sentiment:string
+      batchSize: "1"
+      retryOnError: "3"
+
+  - id: quality
+    type: DataQuality
+    sources:
+      - classified
+    checks:
+      - row_count > 0
+    onFail: warn
+
+sinks:
+  - id: report
+    type: File
+    source: quality
+    config:
+      path: output/classified_tickets
+      format: json
+      saveMode: Overwrite
+      coalesce: "1"
+
+profiles:
+  local:
+    engine: local
+    transformations.classified.config.provider: local
+    transformations.classified.config.model: llama3
+
+tests:
+  - name: "tickets classified"
+    assert: report.row_count > 0
