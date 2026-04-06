@@ -2,6 +2,7 @@ package com.dataweaver.core.plugin
 
 import java.util.ServiceLoader
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 object PluginRegistry {
   private var sources: Map[String, SourceConnector] = Map.empty
@@ -9,13 +10,27 @@ object PluginRegistry {
   private var transforms: Map[String, TransformPlugin] = Map.empty
   private var initialized = false
 
+  /** Initialize by discovering plugins via ServiceLoader.
+    * Gracefully skips connectors whose dependencies are not on the classpath.
+    */
   def init(): Unit = synchronized {
     if (!initialized) {
-      ServiceLoader.load(classOf[SourceConnector]).asScala.foreach(registerSource)
-      ServiceLoader.load(classOf[SinkConnector]).asScala.foreach(registerSink)
-      ServiceLoader.load(classOf[TransformPlugin]).asScala.foreach(registerTransform)
+      safeLoad(classOf[SourceConnector]).foreach(registerSource)
+      safeLoad(classOf[SinkConnector]).foreach(registerSink)
+      safeLoad(classOf[TransformPlugin]).foreach(registerTransform)
       initialized = true
     }
+  }
+
+  /** Load services, skipping any that fail to instantiate (missing deps). */
+  private def safeLoad[T](clazz: Class[T]): List[T] = {
+    val loader = ServiceLoader.load(clazz)
+    val results = scala.collection.mutable.ListBuffer[T]()
+    val iterator = loader.iterator()
+    while (Try(iterator.hasNext).getOrElse(false)) {
+      Try(iterator.next()).foreach(results += _)
+    }
+    results.toList
   }
 
   def registerSource(connector: SourceConnector): Unit =
