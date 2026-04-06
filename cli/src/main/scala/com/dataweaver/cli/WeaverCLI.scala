@@ -17,7 +17,10 @@ object WeaverCLI {
       interactive: Boolean = false,
       projectName: Option[String] = None,
       artifact: Option[String] = None,
-      listCategory: Option[String] = None
+      listCategory: Option[String] = None,
+      scaffoldType: Option[String] = None,
+      scaffoldName: Option[String] = None,
+      connectorKind: String = "source"
   )
 
   def main(args: Array[String]): Unit = {
@@ -46,6 +49,20 @@ object WeaverCLI {
             arg[String]("<description>")
               .action((x, c) => c.copy(description = Some(x)))
               .text("Natural language description of the pipeline")
+          ),
+        cmd("scaffold")
+          .action((_, c) => c.copy(command = "scaffold"))
+          .text("Generate a connector, transform, or private registry project")
+          .children(
+            arg[String]("<type>")
+              .action((x, c) => c.copy(scaffoldType = Some(x)))
+              .text("What to scaffold: connector, transform, registry"),
+            arg[String]("<name>")
+              .action((x, c) => c.copy(scaffoldName = Some(x)))
+              .text("Project name"),
+            opt[String]("type")
+              .action((x, c) => c.copy(connectorKind = x))
+              .text("Connector kind: source (default), sink, or both")
           ),
         cmd("install")
           .action((_, c) => c.copy(command = "install"))
@@ -140,6 +157,8 @@ object WeaverCLI {
           case "init" =>
             if (config.interactive) InteractiveWizard.run()
             else InitCommand.run(config.projectName.getOrElse("my-project"))
+          case "scaffold" =>
+            ScaffoldCommand.run(config.scaffoldType.get, config.scaffoldName.get, config.connectorKind)
           case "install" =>
             InstallCommand.run(config.artifact.get)
           case "list" =>

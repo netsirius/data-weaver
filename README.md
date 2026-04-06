@@ -132,6 +132,10 @@ tests:
 | `weaver apply <pipeline>` | Execute the pipeline |
 | `weaver apply --env prod` | Execute with environment profile |
 | `weaver install <artifact>` | Install a connector plugin |
+| `weaver scaffold connector <name>` | Generate a connector project (ready to build) |
+| `weaver scaffold transform <name>` | Generate a transform plugin project |
+| `weaver scaffold registry <name>` | Generate a private connector registry |
+| `weaver install <artifact>` | Install a connector plugin |
 | `weaver list connectors` | List available source and sink connectors |
 | `weaver list transforms` | List available transformation types |
 | `weaver list plugins` | List installed plugin JARs |
@@ -292,7 +296,19 @@ weaver list transforms
 weaver list plugins
 ```
 
-Plugins are loaded from `~/.weaver/plugins/` automatically. See the [Connector SDK](docs/connector-sdk/CONNECTOR_SDK.md) to build your own.
+### Build Your Own Connector
+
+```bash
+# Scaffold a complete connector project (build.sbt, source code, tests, ServiceLoader)
+weaver scaffold connector my-redis-connector
+weaver scaffold connector my-api-connector --type both   # source + sink
+weaver scaffold transform my-custom-transform
+
+# For your company: create a private registry
+weaver scaffold registry my-company-connectors
+```
+
+Plugins are loaded from `~/.weaver/plugins/` automatically. See the [Connector SDK](docs/connector-sdk/CONNECTOR_SDK.md) for the full guide.
 
 ## Architecture
 
