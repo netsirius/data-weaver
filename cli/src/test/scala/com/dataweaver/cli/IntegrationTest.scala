@@ -1,6 +1,8 @@
 package com.dataweaver.cli
 
-import com.dataweaver.cli.commands.{ApplyCommand, DoctorCommand, ValidateCommand}
+import com.dataweaver.cli.commands.{DoctorCommand, ValidateCommand}
+import com.dataweaver.core.config.YAMLParser
+import com.dataweaver.core.engine.PipelineExecutor
 import com.dataweaver.core.plugin.{PluginRegistry, SourceConnector, SinkConnector, TransformPlugin, TransformConfig}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.scalatest.BeforeAndAfterAll
@@ -14,7 +16,11 @@ class IntegrationTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   val outputPath = "core/src/test/resources/output_test"
 
   override def beforeAll(): Unit = {
-    spark = SparkSession.builder().master("local[2]").appName("IntegrationTest").getOrCreate()
+    spark = SparkSession.builder()
+      .master("local[2]")
+      .appName("IntegrationTest")
+      .config("spark.ui.enabled", "false")
+      .getOrCreate()
 
     // Register test plugins (overwriting any ServiceLoader-loaded defaults)
     PluginRegistry.registerSource(new SourceConnector {
@@ -74,8 +80,11 @@ class IntegrationTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     errors shouldBe empty
   }
 
-  "ApplyCommand" should "execute the test pipeline end-to-end" in {
-    ApplyCommand.run(testPipeline)
+  "PipelineExecutor" should "execute the test pipeline end-to-end" in {
+    // Use PipelineExecutor directly with the existing SparkSession
+    // (avoids classloader conflicts from creating a second SparkSession via EngineSelector)
+    val config = YAMLParser.parseFile(testPipeline).toOption.get
+    PipelineExecutor.execute(config)
 
     val output = spark.read.json(s"$outputPath/ExamplePipeline.json")
     output.count() shouldBe 1
