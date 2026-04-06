@@ -1,2 +1,6 @@
 com.dataweaver.transformations.sql.SQLTransformPlugin
 com.dataweaver.transformations.quality.DataQualityPlugin
+com.dataweaver.transformations.llm.LLMTransformPlugin
+com.dataweaver.transformations.rag.ChunkingPlugin
+com.dataweaver.transformations.rag.EmbeddingPlugin
+com.dataweaver.transformations.rag.GraphExtractionPlugin
