@@ -29,12 +29,9 @@ object PipelineExecutor {
     val results = scala.collection.mutable.Map[String, DataFrame]()
 
     levels.foreach { level =>
-      // Execute nodes — parallel for multi-node levels, sequential for single-node
       val levelResults: List[(String, DataFrame)] = if (level.size == 1) {
-        // Single node — execute directly (avoids classloader issues in tests)
         List(executeNode(level.head, results))
       } else {
-        // Multiple independent nodes — execute in parallel via Future
         val futures = level.map(node => Future(executeNode(node, results)))
         futures.map(f => Await.result(f, 30.minutes))
       }
@@ -69,7 +66,6 @@ object PipelineExecutor {
     logger.info(s"Pipeline '${config.name}' completed successfully")
   }
 
-  /** Execute a single DAG node (source or transform). */
   private def executeNode(
       node: com.dataweaver.core.dag.DAGNode,
       results: scala.collection.mutable.Map[String, DataFrame]
@@ -80,8 +76,7 @@ object PipelineExecutor {
         val connector = PluginRegistry
           .getSource(srcConfig.`type`)
           .getOrElse(throw new IllegalArgumentException(
-            s"Unknown source type '${srcConfig.`type`}'. " +
-              s"Available: ${PluginRegistry.availableSources.mkString(", ")}"))
+            s"Unknown source type '${srcConfig.`type`}'. Available: ${PluginRegistry.availableSources.mkString(", ")}"))
         val enrichedConfig = srcConfig.config ++ Map("id" -> srcConfig.id, "query" -> srcConfig.query).filter(_._2.nonEmpty)
         (srcConfig.id, connector.read(enrichedConfig))
 
@@ -90,17 +85,15 @@ object PipelineExecutor {
         val plugin = PluginRegistry
           .getTransform(tConfig.`type`)
           .getOrElse(throw new IllegalArgumentException(
-            s"Unknown transform type '${tConfig.`type`}'. " +
-              s"Available: ${PluginRegistry.availableTransforms.mkString(", ")}"))
+            s"Unknown transform type '${tConfig.`type`}'. Available: ${PluginRegistry.availableTransforms.mkString(", ")}"))
         val inputs = tConfig.sources.map { srcId =>
           results.synchronized {
-            srcId -> results.getOrElse(srcId,
-              throw new IllegalStateException(s"DataFrame for '$srcId' not found"))
+            srcId -> results.getOrElse(srcId, throw new IllegalStateException(s"DataFrame for '$srcId' not found"))
           }
         }.toMap
         val transformConfig = TransformConfig(
-          id = tConfig.id, sources = tConfig.sources,
-          query = tConfig.query, action = tConfig.action, extra = tConfig.config)
+          id = tConfig.id, sources = tConfig.sources, query = tConfig.query,
+          action = tConfig.action, extra = tConfig.config)
         (tConfig.id, plugin.transform(inputs, transformConfig))
     }
   }
