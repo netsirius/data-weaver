@@ -18,27 +18,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Cache SBT
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache/coursier
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-          restore-keys: |
-            ${{ runner.os }}-sbt-
+          cache: 'sbt'
 
       - name: Compile
         run: sbt compile
 
       - name: Run tests
         run: sbt test
-
-      - name: Check formatting
-        run: sbt scalafmtCheck
-        continue-on-error: true
 
       - name: Assembly JAR
         run: sbt "cli/assembly"
