@@ -33,7 +33,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["PostgreSQL", "MySQL", "File", "Kafka", "MongoDB", "REST", "BigQuery", "Test"],
+            "enum": ["PostgreSQL", "MySQL", "File", "Kafka", "MongoDB", "REST", "Web", "BigQuery", "Test"],
             "description": "Source connector type"
           },
           "connection": {

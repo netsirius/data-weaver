@@ -151,6 +151,7 @@ tests:
 | `Kafka` | Batch + streaming modes |
 | `MongoDB` | Collection reads with aggregation pipeline |
 | `REST` | Generic API with pagination and auth (bearer, API key) |
+| `Web` | Fetch HTML from URLs for web scraping (with delay, User-Agent) |
 | `BigQuery` | Table reads and SQL queries |
 | `Test` | JSON file reader for testing |
 

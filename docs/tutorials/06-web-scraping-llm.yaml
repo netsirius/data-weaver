@@ -3,12 +3,12 @@
 # Real-world use case: Extract product data from a supermarket website
 # using an LLM to parse the HTML instead of brittle CSS selectors.
 #
-# The LLM reads raw HTML and extracts structured product information
-# (name, brand, price, unit price, category, weight). This approach
-# works across different websites without custom parsers.
+# The Web source fetches HTML directly from URLs.
+# The LLM reads raw HTML and extracts structured product information.
+# This approach works across different websites without custom parsers.
 #
 # Flow:
-#   Web pages (HTML) → LLM extracts products → SQL normalizes → Quality check → CSV report
+#   Web pages (live HTTP) → LLM extracts products → SQL normalizes → Quality check → CSV
 #
 # Requirements:
 #   - GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY
@@ -17,25 +17,30 @@
 # Run:
 #   weaver plan docs/tutorials/06-web-scraping-llm.yaml
 #   weaver apply docs/tutorials/06-web-scraping-llm.yaml
+#   weaver apply docs/tutorials/06-web-scraping-llm.yaml --env local  # Ollama
 
 name: SupermarketScraper
 tag: pricing
 engine: local
 
 dataSources:
-  # Step 1: Fetch HTML pages from the supermarket website
-  # In production, this would be a list of category/product page URLs
-  # Here we use sample HTML files to demonstrate the concept
+  # The Web source fetches HTML from URLs directly — no intermediate files
+  # In production: point to real supermarket category pages
+  # delay: ms between requests (be respectful with target servers)
   - id: web_pages
-    type: File
+    type: Web
     config:
-      path: docs/tutorials/data/sample_supermarket_pages.json
-      format: json
+      urls: >
+        https://example-supermarket.com/dairy,
+        https://example-supermarket.com/beverages,
+        https://example-supermarket.com/snacks
+      userAgent: DataWeaver/0.2
+      delay: "1500"
+      timeout: "30"
 
 transformations:
-  # Step 2: LLM reads the raw HTML and extracts structured product data
-  # This is the key differentiator — no CSS selectors, no XPath, no regex
-  # The LLM understands the page structure regardless of the website
+  # LLM reads the raw HTML and extracts structured product data
+  # No CSS selectors, no XPath, no regex — the LLM understands the page
   - id: extracted
     type: LLMTransform
     sources:
@@ -44,8 +49,8 @@ transformations:
       provider: gemini
       model: gemini-2.0-flash
       prompt: |
-        You are a product data extractor. Analyze this supermarket web page HTML
-        and extract ALL products found on the page.
+        You are a product data extractor. Analyze this supermarket web page
+        and extract ALL products visible on the page.
 
         Page URL: {url}
         HTML content: {html}
@@ -54,20 +59,19 @@ transformations:
         - product_name: full product name
         - brand: brand name (or "unknown")
         - price: price in euros (number only, e.g. 2.49)
-        - unit_price: price per kg/liter if available (number only, or "N/A")
-        - category: product category (e.g. "dairy", "beverages", "snacks")
+        - unit_price: price per kg/liter if available (or "N/A")
+        - category: product category (dairy, beverages, snacks, etc.)
         - weight: weight or volume (e.g. "500g", "1L", or "N/A")
 
-        Return ONLY a JSON object with these fields for the FIRST product found.
-        No explanation, no markdown.
+        Return a JSON object with these fields for the first product found.
       inputColumns: url,html
       outputSchema: product_name:string|brand:string|price:string|unit_price:string|category:string|weight:string
       batchSize: "1"
-      maxConcurrent: "3"
+      maxConcurrent: "2"
       retryOnError: "3"
       cache: "true"
 
-  # Step 3: Clean and normalize the extracted data with SQL
+  # Clean and normalize with SQL
   - id: normalized
     type: SQL
     sources:
@@ -84,9 +88,8 @@ transformations:
       FROM extracted
       WHERE product_name IS NOT NULL
         AND price IS NOT NULL
-        AND LENGTH(TRIM(product_name)) > 0
 
-  # Step 4: Quality gate — ensure we got real data
+  # Quality gate
   - id: validated
     type: DataQuality
     sources:
@@ -96,7 +99,7 @@ transformations:
     onFail: warn
 
 sinks:
-  # CSV report for the pricing team (opens in Excel)
+  # CSV for the pricing team (opens in Excel/Sheets)
   - id: pricing_report
     type: File
     source: validated
@@ -106,7 +109,7 @@ sinks:
       saveMode: Overwrite
       coalesce: "1"
 
-  # JSON for the dashboard API
+  # JSON for dashboards or APIs
   - id: dashboard_data
     type: File
     source: validated
@@ -117,7 +120,7 @@ sinks:
       coalesce: "1"
 
 profiles:
-  # Use local Ollama model (free, no API key)
+  # Use local Ollama model (free, no API key needed)
   local:
     transformations.extracted.config.provider: local
     transformations.extracted.config.model: llama3

@@ -6,3 +6,4 @@ com.dataweaver.connectors.sources.KafkaSourceConnector
 com.dataweaver.connectors.sources.MongoDBSourceConnector
 com.dataweaver.connectors.sources.RESTSourceConnector
 com.dataweaver.connectors.sources.BigQuerySourceConnector
+com.dataweaver.connectors.sources.WebSourceConnector
