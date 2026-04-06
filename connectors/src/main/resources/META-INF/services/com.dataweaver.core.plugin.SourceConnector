@@ -2,3 +2,7 @@ com.dataweaver.connectors.sources.SQLSourceConnector
 com.dataweaver.connectors.sources.TestSourceConnector
 com.dataweaver.connectors.sources.PostgreSQLSourceConnector
 com.dataweaver.connectors.sources.FileSourceConnector
+com.dataweaver.connectors.sources.KafkaSourceConnector
+com.dataweaver.connectors.sources.MongoDBSourceConnector
+com.dataweaver.connectors.sources.RESTSourceConnector
+com.dataweaver.connectors.sources.BigQuerySourceConnector

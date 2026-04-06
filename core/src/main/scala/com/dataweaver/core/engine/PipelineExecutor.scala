@@ -29,49 +29,13 @@ object PipelineExecutor {
     val results = scala.collection.mutable.Map[String, DataFrame]()
 
     levels.foreach { level =>
-      val futures = level.map {
-        case SourceNode(srcConfig) =>
-          Future {
-            logger.info(s"Reading source '${srcConfig.id}' (${srcConfig.`type`})")
-            val connector = PluginRegistry
-              .getSource(srcConfig.`type`)
-              .getOrElse(throw new IllegalArgumentException(
-                s"Unknown source type '${srcConfig.`type`}'. " +
-                  s"Available: ${PluginRegistry.availableSources.mkString(", ")}"
-              ))
-            val enrichedConfig = srcConfig.config ++ Map("id" -> srcConfig.id, "query" -> srcConfig.query).filter(_._2.nonEmpty)
-            val df = connector.read(enrichedConfig)
-            (srcConfig.id, df)
-          }
-
-        case TransformNode(tConfig) =>
-          Future {
-            logger.info(s"Applying transform '${tConfig.id}' (${tConfig.`type`})")
-            val plugin = PluginRegistry
-              .getTransform(tConfig.`type`)
-              .getOrElse(throw new IllegalArgumentException(
-                s"Unknown transform type '${tConfig.`type`}'. " +
-                  s"Available: ${PluginRegistry.availableTransforms.mkString(", ")}"
-              ))
-            val inputs = tConfig.sources.map { srcId =>
-              results.synchronized {
-                srcId -> results.getOrElse(srcId,
-                  throw new IllegalStateException(s"DataFrame for '$srcId' not found"))
-              }
-            }.toMap
-            val transformConfig = TransformConfig(
-              id = tConfig.id,
-              sources = tConfig.sources,
-              query = tConfig.query,
-              action = tConfig.action,
-              extra = tConfig.config
-            )
-            val df = plugin.transform(inputs, transformConfig)
-            (tConfig.id, df)
-          }
+      val levelResults: List[(String, DataFrame)] = if (level.size == 1) {
+        List(executeNode(level.head, results))
+      } else {
+        val futures = level.map(node => Future(executeNode(node, results)))
+        futures.map(f => Await.result(f, 30.minutes))
       }
 
-      val levelResults = futures.map(f => Await.result(f, 30.minutes))
       results.synchronized {
         levelResults.foreach { case (id, df) => results += (id -> df) }
       }
@@ -102,6 +66,38 @@ object PipelineExecutor {
     logger.info(s"Pipeline '${config.name}' completed successfully")
   }
 
+  private def executeNode(
+      node: com.dataweaver.core.dag.DAGNode,
+      results: scala.collection.mutable.Map[String, DataFrame]
+  )(implicit spark: SparkSession): (String, DataFrame) = {
+    node match {
+      case SourceNode(srcConfig) =>
+        logger.info(s"Reading source '${srcConfig.id}' (${srcConfig.`type`})")
+        val connector = PluginRegistry
+          .getSource(srcConfig.`type`)
+          .getOrElse(throw new IllegalArgumentException(
+            s"Unknown source type '${srcConfig.`type`}'. Available: ${PluginRegistry.availableSources.mkString(", ")}"))
+        val enrichedConfig = srcConfig.config ++ Map("id" -> srcConfig.id, "query" -> srcConfig.query).filter(_._2.nonEmpty)
+        (srcConfig.id, connector.read(enrichedConfig))
+
+      case TransformNode(tConfig) =>
+        logger.info(s"Applying transform '${tConfig.id}' (${tConfig.`type`})")
+        val plugin = PluginRegistry
+          .getTransform(tConfig.`type`)
+          .getOrElse(throw new IllegalArgumentException(
+            s"Unknown transform type '${tConfig.`type`}'. Available: ${PluginRegistry.availableTransforms.mkString(", ")}"))
+        val inputs = tConfig.sources.map { srcId =>
+          results.synchronized {
+            srcId -> results.getOrElse(srcId, throw new IllegalStateException(s"DataFrame for '$srcId' not found"))
+          }
+        }.toMap
+        val transformConfig = TransformConfig(
+          id = tConfig.id, sources = tConfig.sources, query = tConfig.query,
+          action = tConfig.action, extra = tConfig.config)
+        (tConfig.id, plugin.transform(inputs, transformConfig))
+    }
+  }
+
   /** Execute pipeline and return all intermediate DataFrames (for testing).
     * Same as execute() but returns the results map instead of only writing to sinks.
     */
@@ -117,40 +113,13 @@ object PipelineExecutor {
     val results = scala.collection.mutable.Map[String, DataFrame]()
 
     levels.foreach { level =>
-      val futures = level.map {
-        case SourceNode(srcConfig) =>
-          Future {
-            val connector = PluginRegistry
-              .getSource(srcConfig.`type`)
-              .getOrElse(throw new IllegalArgumentException(
-                s"Unknown source type '${srcConfig.`type`}'"))
-            (srcConfig.id, connector.read(srcConfig.config))
-          }
-
-        case TransformNode(tConfig) =>
-          Future {
-            val plugin = PluginRegistry
-              .getTransform(tConfig.`type`)
-              .getOrElse(throw new IllegalArgumentException(
-                s"Unknown transform type '${tConfig.`type`}'"))
-            val inputs = tConfig.sources.map { srcId =>
-              results.synchronized {
-                srcId -> results.getOrElse(srcId,
-                  throw new IllegalStateException(s"DataFrame for '$srcId' not found"))
-              }
-            }.toMap
-            val transformConfig = TransformConfig(
-              id = tConfig.id,
-              sources = tConfig.sources,
-              query = tConfig.query,
-              action = tConfig.action,
-              extra = tConfig.config
-            )
-            (tConfig.id, plugin.transform(inputs, transformConfig))
-          }
+      val levelResults: List[(String, DataFrame)] = if (level.size == 1) {
+        List(executeNode(level.head, results))
+      } else {
+        val futures = level.map(node => Future(executeNode(node, results)))
+        futures.map(f => Await.result(f, 30.minutes))
       }
 
-      val levelResults = futures.map(f => Await.result(f, 30.minutes))
       results.synchronized {
         levelResults.foreach { case (id, df) => results += (id -> df) }
       }

@@ -1,0 +1,50 @@
+# Tutorial 3: RAG pipeline — Documents to vectors
+# Reads text files, chunks them, generates embeddings
+#
+# Requires: OPENAI_API_KEY environment variable
+# Run: weaver apply docs/tutorials/03-rag-pipeline.yaml
+
+name: RAGPipeline
+tag: tutorial
+engine: local
+
+dataSources:
+  - id: documents
+    type: File
+    config:
+      path: docs/tutorials/data/sample_docs.json
+      format: json
+
+transformations:
+  - id: chunks
+    type: Chunking
+    sources:
+      - documents
+    config:
+      strategy: sentence
+      size: "500"
+      overlap: "50"
+      textColumn: content
+      idColumn: title
+
+  - id: quality
+    type: DataQuality
+    sources:
+      - chunks
+    checks:
+      - row_count > 0
+    onFail: warn
+
+sinks:
+  - id: chunked_output
+    type: File
+    source: quality
+    config:
+      path: output/rag_chunks
+      format: json
+      saveMode: Overwrite
+      coalesce: "1"
+
+tests:
+  - name: "chunks generated"
+    assert: chunked_output.row_count > 0

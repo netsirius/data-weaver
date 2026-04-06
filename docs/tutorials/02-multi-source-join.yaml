@@ -1,0 +1,71 @@
+# Tutorial 2: Multi-source join with parallel transforms
+# Reads two CSV files, transforms independently (parallel), joins results
+#
+# Run: weaver apply docs/tutorials/02-multi-source-join.yaml
+# See DAG: weaver explain docs/tutorials/02-multi-source-join.yaml
+
+name: MultiSourceJoin
+tag: tutorial
+engine: local
+
+dataSources:
+  - id: customers
+    type: File
+    config:
+      path: docs/tutorials/data/sample_customers.csv
+      format: csv
+
+  - id: orders
+    type: File
+    config:
+      path: docs/tutorials/data/sample_orders.csv
+      format: csv
+
+transformations:
+  # These two run in PARALLEL (no dependency between them)
+  - id: active_customers
+    type: SQL
+    sources:
+      - customers
+    query: >
+      SELECT id, name, email, city
+      FROM customers
+      WHERE age >= 18
+
+  - id: recent_orders
+    type: SQL
+    sources:
+      - orders
+    query: >
+      SELECT customer_id, product, amount
+      FROM orders
+      WHERE amount > 0
+
+  # This runs AFTER both above complete (depends on both)
+  - id: enriched
+    type: SQL
+    sources:
+      - active_customers
+      - recent_orders
+    query: >
+      SELECT
+        c.name, c.email, c.city,
+        COUNT(o.product) as order_count,
+        SUM(o.amount) as total_spent
+      FROM active_customers c
+      LEFT JOIN recent_orders o ON c.id = o.customer_id
+      GROUP BY c.name, c.email, c.city
+
+sinks:
+  - id: report
+    type: File
+    source: enriched
+    config:
+      path: output/customer_report
+      format: json
+      saveMode: Overwrite
+      coalesce: "1"
+
+tests:
+  - name: "has enriched data"
+    assert: report.row_count > 0

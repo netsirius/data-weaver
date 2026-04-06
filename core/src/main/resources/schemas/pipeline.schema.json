@@ -33,7 +33,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["PostgreSQL", "MySQL", "File", "Test"],
+            "enum": ["PostgreSQL", "MySQL", "File", "Kafka", "MongoDB", "REST", "BigQuery", "Test"],
             "description": "Source connector type"
           },
           "connection": {
@@ -112,7 +112,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["BigQuery", "DeltaLake", "File", "Test"],
+            "enum": ["BigQuery", "DeltaLake", "File", "Kafka", "Elasticsearch", "Test"],
             "description": "Sink connector type"
           },
           "source": {

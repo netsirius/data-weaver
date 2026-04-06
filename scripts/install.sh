@@ -1,34 +1,24 @@
 #!/bin/bash
-
-echo "Por favor, ingrese su token de acceso para Azure Artifacts:"
-read -s AZURE_TOKEN
-
-# URL de tu JAR en Azure Artifacts
-AZURE_JAR_URL=""
-JAR_NAME="data-weaver.jar"
-INSTALL_DIR="$HOME/.data-weaver"
-BIN_DIR="$HOME/bin"
-
-# Crear directorios si no existen
+set -e
+VERSION="${WEAVER_VERSION:-latest}"
+INSTALL_DIR="${WEAVER_INSTALL_DIR:-$HOME/.local/bin}"
+GITHUB_REPO="netsirius/data-weaver"
+echo "Installing Data Weaver..."
 mkdir -p "$INSTALL_DIR"
-mkdir -p "$BIN_DIR"
-
-# Descargar el JAR
-echo "Descargando Data Weaver..."
-# curl -u :$AZURE_TOKEN -o "$INSTALL_DIR/$JAR_NAME" "$AZURE_JAR_URL"
-
-# Hacer el JAR ejecutable
-chmod +x "$INSTALL_DIR/$JAR_NAME"
-
-# Crear un script de envoltura en BIN_DIR
-echo "#!/bin/bash" > "$BIN_DIR/weaver"
-echo "java -jar $INSTALL_DIR/$JAR_NAME \"\$@\"" >> "$BIN_DIR/weaver"
-chmod +x "$BIN_DIR/weaver"
-
-# Agregar BIN_DIR al PATH si aún no está
-if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo "export PATH=\$PATH:$BIN_DIR" >> "$HOME/.bashrc"
-    source "$HOME/.bashrc"
+if [ "$VERSION" = "latest" ]; then
+  DOWNLOAD_URL="https://github.com/$GITHUB_REPO/releases/latest/download/data-weaver.jar"
+else
+  DOWNLOAD_URL="https://github.com/$GITHUB_REPO/releases/download/v$VERSION/data-weaver.jar"
 fi
-
-echo "Instalación completada. Data Weaver está disponible como 'weaver' en el PATH."
+echo "Downloading from: $DOWNLOAD_URL"
+curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/data-weaver.jar"
+cat > "$INSTALL_DIR/weaver" << 'WSCRIPT'
+#!/bin/bash
+exec java ${JAVA_OPTS:--Xmx1g} -jar "$(dirname "$0")/data-weaver.jar" "$@"
+WSCRIPT
+chmod +x "$INSTALL_DIR/weaver"
+echo ""
+echo "Data Weaver installed!"
+echo "  Location: $INSTALL_DIR/weaver"
+echo "  Add to PATH: export PATH=\"$INSTALL_DIR:\$PATH\""
+echo "  Get started: weaver init my-project"
