@@ -1,9 +1,7 @@
 package com.dataweaver.cli
 
 import com.dataweaver.cli.commands._
-import com.dataweaver.core.config.ProfileApplier
-import com.dataweaver.core.engine.EngineSelector
-import org.apache.spark.sql.SparkSession
+import com.dataweaver.cli.wizard.InteractiveWizard
 import scopt.OParser
 
 object WeaverCLI {
@@ -14,7 +12,10 @@ object WeaverCLI {
       env: Option[String] = None,
       inspectId: Option[String] = None,
       autoGenerate: Boolean = false,
-      showCoverage: Boolean = false
+      showCoverage: Boolean = false,
+      description: Option[String] = None,
+      interactive: Boolean = false,
+      projectName: Option[String] = None
   )
 
   def main(args: Array[String]): Unit = {
@@ -24,6 +25,26 @@ object WeaverCLI {
       OParser.sequence(
         programName("weaver"),
         head("Data Weaver", "0.2.0"),
+        cmd("init")
+          .action((_, c) => c.copy(command = "init"))
+          .text("Initialize a new project or generate pipeline interactively")
+          .children(
+            arg[String]("<project-name>")
+              .optional()
+              .action((x, c) => c.copy(projectName = Some(x)))
+              .text("Project name"),
+            opt[Unit]("interactive")
+              .action((_, c) => c.copy(interactive = true))
+              .text("Step-by-step pipeline wizard (no LLM required)")
+          ),
+        cmd("generate")
+          .action((_, c) => c.copy(command = "generate"))
+          .text("Generate pipeline YAML from natural language description")
+          .children(
+            arg[String]("<description>")
+              .action((x, c) => c.copy(description = Some(x)))
+              .text("Natural language description of the pipeline")
+          ),
         cmd("doctor")
           .action((_, c) => c.copy(command = "doctor"))
           .text("Full system diagnostic")
@@ -98,6 +119,11 @@ object WeaverCLI {
     OParser.parse(parser, args, Config()) match {
       case Some(config) =>
         config.command match {
+          case "init" =>
+            if (config.interactive) InteractiveWizard.run()
+            else InitCommand.run(config.projectName.getOrElse("my-project"))
+          case "generate" =>
+            GenerateCommand.run(config.description.get)
           case "doctor" =>
             val result = DoctorCommand.run(config.pipeline.get)
             if (!result.overallHealthy) sys.exit(1)
